@@ -126,7 +126,7 @@ namespace TestATbluePandaSDK
             Assert.Null(ActionResponseUserNull.ValidationStatus);
             Assert.Null(ActionResponseUserNull.Commit);
             Assert.NotEmpty(ActionResponseUserNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.FOLLOWEE_IS_NULL, ActionResponseUserNull.ErrorMessage);
+            Assert.Equal(ErrorMessage.USER_IS_NULL, ActionResponseUserNull.ErrorMessage);
 
             Assert.NotNull(ActionResponseUserStringNull);
             Assert.Null(ActionResponseUserStringNull.Cid);
@@ -134,7 +134,7 @@ namespace TestATbluePandaSDK
             Assert.Null(ActionResponseUserStringNull.ValidationStatus);
             Assert.Null(ActionResponseUserStringNull.Commit);
             Assert.NotEmpty(ActionResponseUserStringNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.FOLLOWEE_DID_IS_NULL, ActionResponseUserStringNull.ErrorMessage);
+            Assert.Equal(ErrorMessage.USER_DID_IS_NULL, ActionResponseUserStringNull.ErrorMessage);
 
             Assert.NotNull(ActionResponseUserEmpty);
             Assert.Null(ActionResponseUserEmpty.Cid);
@@ -150,7 +150,7 @@ namespace TestATbluePandaSDK
             Assert.Null(ActionResponseSameUser.ValidationStatus);
             Assert.Null(ActionResponseSameUser.Commit);
             Assert.NotEmpty(ActionResponseSameUser.ErrorMessage);
-            Assert.Equal(ErrorMessage.SAME_DID_USER_FOLLOWEE, ActionResponseSameUser.ErrorMessage);
+            Assert.Equal(ErrorMessage.SAME_DID_USER, ActionResponseSameUser.ErrorMessage);
 
         }
 
@@ -265,7 +265,7 @@ namespace TestATbluePandaSDK
             Assert.Null(ActionResponseUserNull.ValidationStatus);
             Assert.Null(ActionResponseUserNull.Commit);
             Assert.NotEmpty(ActionResponseUserNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.FOLLOWEE_IS_NULL, ActionResponseUserNull.ErrorMessage);
+            Assert.Equal(ErrorMessage.USER_IS_NULL, ActionResponseUserNull.ErrorMessage);
 
             Assert.NotNull(ActionResponseUserStringNull);
             Assert.Null(ActionResponseUserStringNull.Cid);
@@ -273,7 +273,7 @@ namespace TestATbluePandaSDK
             Assert.Null(ActionResponseUserStringNull.ValidationStatus);
             Assert.Null(ActionResponseUserStringNull.Commit);
             Assert.NotEmpty(ActionResponseUserStringNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.FOLLOWEE_DID_IS_NULL, ActionResponseUserStringNull.ErrorMessage);
+            Assert.Equal(ErrorMessage.USER_DID_IS_NULL, ActionResponseUserStringNull.ErrorMessage);
 
             Assert.NotNull(ActionResponseUserEmpty);
             Assert.Null(ActionResponseUserEmpty.Cid);
@@ -289,9 +289,208 @@ namespace TestATbluePandaSDK
             Assert.Null(ActionResponseSameUser.ValidationStatus);
             Assert.Null(ActionResponseSameUser.Commit);
             Assert.NotEmpty(ActionResponseSameUser.ErrorMessage);
-            Assert.Equal(ErrorMessage.SAME_DID_USER_FOLLOWEE, ActionResponseSameUser.ErrorMessage);
+            Assert.Equal(ErrorMessage.SAME_DID_USER, ActionResponseSameUser.ErrorMessage);
 
         }
 
+        [Fact]
+        public void MuteUser()
+        {
+            AuthUser authUser = Utils.GetAuthUser();
+            User user = Utils.GetUser();
+            ActionResponse fakeAction = Utils.GetActionResponse();
+
+            var fakeActionJSON = JsonSerializer.Serialize(fakeAction);
+
+            HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Post, fakeActionJSON);
+
+            ATPClient client = new ATPClient(httpClient);
+
+
+            ActionResponse actionResponse = client.MuteUser(authUser, user);
+
+            Assert.NotNull(actionResponse);
+            Assert.Equal(HttpStatusCode.OK, actionResponse.StatusCode);
+            Assert.Null(actionResponse.ErrorMessage);
+
+        }
+
+        [Fact]
+        public void MuteFail()
+        {
+            AuthUser authUser = Utils.GetAuthUser();
+            User user = Utils.GetUser();
+            //user.Did = "did:plc:oxslbmjeqfhddwb5eac3knqm";
+            ActionResponse fakeAction = Utils.GetActionResponseError();
+
+            var fakeActionJSON = JsonSerializer.Serialize(fakeAction);
+
+            HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.BadRequest, HttpMethod.Post, fakeActionJSON);
+
+            ATPClient client = new ATPClient(httpClient);
+
+
+            ActionResponse actionResponse = client.MuteUser(authUser, user);
+
+            Assert.NotNull(actionResponse);
+            Assert.Equal(HttpStatusCode.BadRequest, actionResponse.StatusCode);
+            Assert.NotEmpty(actionResponse.ErrorMessage);
+
+        }
+
+        [Fact]
+        public void MuteWrongArgumentFail()
+        {
+            ATPClient client = new ATPClient();
+            AuthUser authUser = Utils.GetAuthUser();
+            User userMuted = Utils.GetUser();
+            userMuted.Viewer.Muted = true;
+            User userEmpty = new User();
+            User userStringNull = new User();
+            userStringNull.Viewer = new Viewer { Muted = true };
+            User sameUser = Utils.GetUser();
+            sameUser.Did = authUser.Did;
+
+            ActionResponse ActionResponseAuthNull = client.MuteUser(null, userMuted);
+            ActionResponse ActionResponseUserMutted = client.MuteUser(authUser, userMuted);
+            ActionResponse ActionResponseUserNull = client.MuteUser(authUser, null);
+            ActionResponse ActionResponseUserStringNull = client.MuteUser(authUser, userStringNull);
+            ActionResponse ActionResponseUserEmpty = client.MuteUser(authUser, userEmpty);
+            ActionResponse ActionResponseSameUser = client.MuteUser(authUser, sameUser);
+
+
+
+            Assert.NotNull(ActionResponseAuthNull);
+            Assert.NotEmpty(ActionResponseAuthNull.ErrorMessage);
+            Assert.Null(ActionResponseAuthNull.Cid);
+            Assert.Equal(ErrorMessage.USER_NOT_AUTHENTICATED, ActionResponseAuthNull.ErrorMessage);
+
+            Assert.NotNull(ActionResponseUserMutted);
+            Assert.NotEmpty(ActionResponseUserMutted.ErrorMessage);
+            Assert.Null(ActionResponseUserMutted.Cid);
+            Assert.Equal(ErrorMessage.USER_ALREADY_MUTED, ActionResponseUserMutted.ErrorMessage);
+
+            Assert.NotNull(ActionResponseUserNull);
+            Assert.NotEmpty(ActionResponseUserNull.ErrorMessage);
+            Assert.Null(ActionResponseUserNull.Cid);
+            Assert.Equal(ErrorMessage.USER_IS_NULL, ActionResponseUserNull.ErrorMessage);
+
+            Assert.NotNull(ActionResponseUserStringNull);
+            Assert.NotEmpty(ActionResponseUserStringNull.ErrorMessage);
+            Assert.Null(ActionResponseUserStringNull.Cid);
+            Assert.Equal(ErrorMessage.USER_DID_IS_NULL, ActionResponseUserStringNull.ErrorMessage);
+
+            Assert.NotNull(ActionResponseUserEmpty);
+            Assert.NotEmpty(ActionResponseUserEmpty.ErrorMessage);
+            Assert.Null(ActionResponseUserEmpty.Cid);
+            Assert.Equal(ErrorMessage.VIEWER_IS_NULL, ActionResponseUserEmpty.ErrorMessage);
+
+            Assert.NotNull(ActionResponseSameUser);
+            Assert.NotEmpty(ActionResponseSameUser.ErrorMessage);
+            Assert.Null(ActionResponseSameUser.Cid);
+            Assert.Equal(ErrorMessage.SAME_DID_USER, ActionResponseSameUser.ErrorMessage);
+
+        }
+
+        [Fact]
+        public void UnMuteUserSuccess()
+        {
+            AuthUser authUser = Utils.GetAuthUser();
+            User user = Utils.GetUser();
+            user.Viewer.Muted = true;
+
+            ActionResponse fakeAction = Utils.GetActionResponse();
+
+            var fakeActionJSON = JsonSerializer.Serialize(fakeAction);
+
+            HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Post, fakeActionJSON);
+
+            ATPClient client = new ATPClient(httpClient);
+
+            ActionResponse actionResponseUnMute = client.UnMuteUser(authUser, user);
+
+            Assert.NotNull(actionResponseUnMute);
+            Assert.Equal(HttpStatusCode.OK, actionResponseUnMute.StatusCode);
+            Assert.Null(actionResponseUnMute.ErrorMessage);
+
+        }
+
+        [Fact]
+        public void UnMuteUserFail()
+        {
+            AuthUser authUser = Utils.GetAuthUser();
+            User user = Utils.GetUser();
+            user.Viewer.Muted = true;
+
+            ActionResponse fakeAction = Utils.GetActionResponseError();
+            fakeAction.StatusCode = HttpStatusCode.BadRequest;
+
+            var fakeActionJSON = JsonSerializer.Serialize(fakeAction);
+
+            HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.BadRequest, HttpMethod.Post, fakeActionJSON);
+
+            ATPClient client = new ATPClient(httpClient);
+
+            ActionResponse actionResponseUnMute = client.UnMuteUser(authUser, user);
+
+            Assert.NotNull(actionResponseUnMute);
+            Assert.Equal(HttpStatusCode.BadRequest, actionResponseUnMute.StatusCode);
+            Assert.NotEmpty(actionResponseUnMute.ErrorMessage);
+            
+        }
+
+        [Fact]
+        public void UnMuteWrongArgumentFail()
+        {
+            ATPClient client = new ATPClient();
+            AuthUser authUser = Utils.GetAuthUser();
+            User userUnMuted = Utils.GetUser();
+            userUnMuted.Viewer.Muted = false;
+            User userEmpty = new User();
+            User userStringNull = new User();
+            userStringNull.Viewer = new Viewer { Muted = true };
+            User sameUser = Utils.GetUser();
+            sameUser.Did = authUser.Did;
+
+            ActionResponse ActionResponseAuthNull = client.UnMuteUser(null, userUnMuted);
+            ActionResponse ActionResponseUserUnMutted = client.UnMuteUser(authUser, userUnMuted);
+            ActionResponse ActionResponseUserNull = client.UnMuteUser(authUser, null);
+            ActionResponse ActionResponseUserStringNull = client.UnMuteUser(authUser, userStringNull);
+            ActionResponse ActionResponseUserEmpty = client.UnMuteUser(authUser, userEmpty);
+            ActionResponse ActionResponseSameUser = client.UnMuteUser(authUser, sameUser);
+
+
+
+            Assert.NotNull(ActionResponseAuthNull);
+            Assert.NotEmpty(ActionResponseAuthNull.ErrorMessage);
+            Assert.Null(ActionResponseAuthNull.Cid);
+            Assert.Equal(ErrorMessage.USER_NOT_AUTHENTICATED, ActionResponseAuthNull.ErrorMessage);
+
+            Assert.NotNull(ActionResponseUserUnMutted);
+            Assert.NotEmpty(ActionResponseUserUnMutted.ErrorMessage);
+            Assert.Null(ActionResponseUserUnMutted.Cid);
+            Assert.Equal(ErrorMessage.USER_NOT_MUTED, ActionResponseUserUnMutted.ErrorMessage);
+
+            Assert.NotNull(ActionResponseUserNull);
+            Assert.NotEmpty(ActionResponseUserNull.ErrorMessage);
+            Assert.Null(ActionResponseUserNull.Cid);
+            Assert.Equal(ErrorMessage.USER_IS_NULL, ActionResponseUserNull.ErrorMessage);
+
+            Assert.NotNull(ActionResponseUserStringNull);
+            Assert.NotEmpty(ActionResponseUserStringNull.ErrorMessage);
+            Assert.Null(ActionResponseUserStringNull.Cid);
+            Assert.Equal(ErrorMessage.USER_DID_IS_NULL, ActionResponseUserStringNull.ErrorMessage);
+
+            Assert.NotNull(ActionResponseUserEmpty);
+            Assert.NotEmpty(ActionResponseUserEmpty.ErrorMessage);
+            Assert.Null(ActionResponseUserEmpty.Cid);
+            Assert.Equal(ErrorMessage.VIEWER_IS_NULL, ActionResponseUserEmpty.ErrorMessage);
+
+            Assert.NotNull(ActionResponseSameUser);
+            Assert.NotEmpty(ActionResponseSameUser.ErrorMessage);
+            Assert.Null(ActionResponseSameUser.Cid);
+            Assert.Equal(ErrorMessage.SAME_DID_USER, ActionResponseSameUser.ErrorMessage);
+
+        }
     }
 }

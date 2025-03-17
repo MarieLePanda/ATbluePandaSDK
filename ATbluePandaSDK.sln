@@ -26,3 +26,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal
+
+
+did: "did:plc:3xq7xwcv4zmrc6aexgpguds5"
+Viewer:
+	Muted: false

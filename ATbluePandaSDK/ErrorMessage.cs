@@ -22,8 +22,10 @@ namespace ATbluePandaSDK
         public static string POST_IS_NULL = "Post cannot be null or empty.";
         public static string VIEWER_IS_NULL = "Viewer cannot be null.";
         public static string POST_URI_OR_CID_IS_NULL = "Post uri or cid cannot be null or empty.";
-        public static string FOLLOWEE_IS_NULL = "Followee cannot be null.";
-        public static string FOLLOWEE_DID_IS_NULL = "Followee DID cannot be null or empty.";
-        public static string SAME_DID_USER_FOLLOWEE = "Authenticate user and followee user cannot have the same DID";
+        public static string USER_IS_NULL = "User cannot be null.";
+        public static string USER_DID_IS_NULL = "User DID cannot be null or empty.";
+        public static string SAME_DID_USER = "Users cannot have the same DID";
+        public static string USER_ALREADY_MUTED = "User is already muted.";
+        public static string USER_NOT_MUTED = "User is not muted.";
     }
 }

@@ -263,7 +263,7 @@ namespace ATPandaSDK
         /// <remarks>I hope yo uare doing it for @pykpyky</remarks>
         public ActionResponse Follow(AuthUser authUser, User followee)
         {
-            ActionResponse actionResponse = followOrUnfollowVerification(authUser, followee);
+            ActionResponse actionResponse = userActionVerification(authUser, followee);
 
             if(actionResponse == null)
             {
@@ -293,7 +293,7 @@ namespace ATPandaSDK
         /// <remarks>Could you not check who you followed first ?</remarks>
         public ActionResponse Unfollow(AuthUser authUser, User followee)
         {
-            ActionResponse actionResponse = followOrUnfollowVerification(authUser, followee);
+            ActionResponse actionResponse = userActionVerification(authUser, followee);
             if(actionResponse == null)
             {
                 if (string.IsNullOrEmpty(followee.Viewer.Following))
@@ -374,6 +374,51 @@ namespace ATPandaSDK
             return actionResponse;
         }
 
+        public ActionResponse MuteUser(AuthUser authUser, User user)
+        {
+            ActionResponse actionResponse = userActionVerification(authUser, user);
+
+            if (actionResponse == null)
+            {
+                if (user.Viewer.Muted == true)
+                {
+                    return new ActionResponse { ErrorMessage = ErrorMessage.USER_ALREADY_MUTED };
+                }
+                try
+                {
+                    return _accountService.MuteUser(authUser.AccessJwt, authUser.Did, user.Did).Result;
+                }
+                catch (Exception ex)
+                {
+                    return new ActionResponse { ErrorMessage = ex.Message };
+                }
+            }
+
+            return actionResponse;
+        }
+
+        public ActionResponse UnMuteUser(AuthUser authUser, User user)
+        {
+            ActionResponse actionResponse = userActionVerification(authUser, user);
+
+            if (actionResponse == null)
+            {
+                if (user.Viewer.Muted == false)
+                {
+                    return new ActionResponse { ErrorMessage = ErrorMessage.USER_NOT_MUTED };
+                }
+                try
+                {
+                    return _accountService.UnMuteUser(authUser.AccessJwt, authUser.Did, user.Did).Result;
+                }
+                catch (Exception ex)
+                {
+                    return new ActionResponse { ErrorMessage = ex.Message };
+                }
+            }
+
+            return actionResponse;
+        }
         /// <summary>
         /// Verifies if the user can like or unlike a post.
         /// </summary>
@@ -403,35 +448,37 @@ namespace ATPandaSDK
         }
 
         /// <summary>
-        /// Verifies if the user can follow or unfollow another user.
+        /// Verifies if the user can interact with another user.
         /// </summary>
         /// <param name="authUser">The authenticated user.</param>
-        /// <param name="followee">The user to be followed or unfollowed.</param>
+        /// <param name="user">The user whith you want interact.</param>
         /// <returns>An <see cref="ActionResponse"/> indicating verification status or null if valid.</returns>
-        private ActionResponse? followOrUnfollowVerification(AuthUser authUser, User followee)
+        private ActionResponse? userActionVerification(AuthUser authUser, User user)
         {
             if (authUser == null || !authUser.IsAuthenticated())
             {
                 return new ActionResponse { ErrorMessage = ErrorMessage.USER_NOT_AUTHENTICATED };
             }
-            if (followee == null)
+            if (user == null)
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.FOLLOWEE_IS_NULL };
+                return new ActionResponse { ErrorMessage = ErrorMessage.USER_IS_NULL };
             }
-            if (followee.Viewer == null)
+            if (user.Viewer == null)
             {
                 return new ActionResponse { ErrorMessage = ErrorMessage.VIEWER_IS_NULL };
             }
-            if (string.IsNullOrEmpty(followee.Did))
+            if (string.IsNullOrEmpty(user.Did))
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.FOLLOWEE_DID_IS_NULL };
+                return new ActionResponse { ErrorMessage = ErrorMessage.USER_DID_IS_NULL };
             }
-            if (authUser.Did.Equals(followee.Did))
+            if (authUser.Did.Equals(user.Did))
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.SAME_DID_USER_FOLLOWEE };
+                return new ActionResponse { ErrorMessage = ErrorMessage.SAME_DID_USER };
             }
 
             return null;
         }
+
+
     }
 }

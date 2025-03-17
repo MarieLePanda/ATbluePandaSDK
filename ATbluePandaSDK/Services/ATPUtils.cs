@@ -34,26 +34,34 @@ namespace ATbluePandaSDK.Services
 
             HttpResponseMessage response = await httpClient.PostAsync(url, jsonContent);
             logger.LogInformation("Status code : {StatusCode}", response.StatusCode);
-
+            ActionResponse actionResponse = null;
             if (response.IsSuccessStatusCode)
             {
+
                 string postResult = await response.Content.ReadAsStringAsync();
                 logger.LogInformation("Response content : {ResponseContent}", postResult);
-
-                ActionResponse actionResponse = JsonSerializer.Deserialize<ActionResponse>(postResult);
-
-                return actionResponse;
+                if(string.IsNullOrEmpty(postResult))
+                {
+                    actionResponse = new ActionResponse();
+                }
+                else
+                {
+                    actionResponse = JsonSerializer.Deserialize<ActionResponse>(postResult);
+                }
             }
             else
             {
                 string errorResponse = await response.Content.ReadAsStringAsync();
                 logger.LogInformation("Response content : {ResponseContent}", errorResponse);
 
-                return new ActionResponse
+                actionResponse =  new ActionResponse
                 {
                     ErrorMessage = errorResponse
                 };
             }
+
+            actionResponse.StatusCode = response.StatusCode;
+            return actionResponse;
         }
     }
 }

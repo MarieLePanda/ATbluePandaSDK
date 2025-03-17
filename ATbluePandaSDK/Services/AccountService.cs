@@ -81,5 +81,24 @@ namespace ATbluePandaSDK.Services
             return await ATPUtils.SendRecordAsync(_httpClient, accessToken, requestData, Configuration.DeleteRecord, _logger);
         }
 
+        public async Task<ActionResponse> MuteUser(string accessJwt, string did, string muteDid)
+        {
+            var recordData = new
+            {
+                actor = muteDid
+            };
+
+            return await ATPUtils.SendRecordAsync(_httpClient, accessJwt, recordData, "app.bsky.graph.muteActor", _logger);
+        }
+
+        public async Task<ActionResponse> UnMuteUser(string accessJwt, string did, string muteDid)
+        {
+            var recordData = new
+            {
+                actor = muteDid
+            };
+
+            return await ATPUtils.SendRecordAsync(_httpClient, accessJwt, recordData, "app.bsky.graph.unmuteActor", _logger);
+        }
     }
 }

@@ -65,17 +65,20 @@ namespace TestATbluePandaSDK
                 Cid = "467euyi32w2k",
                 Commit = commit,
                 Uri = "at://did:plc:dewdwfakeDidUrudwqqw/app.bsky.feed.post/467euyi32w2k",
-                ValidationStatus = "valid"
+                ValidationStatus = "valid",
+                StatusCode = HttpStatusCode.OK
             };
 
             return fakeAction;
         }
 
+
         public static ActionResponse GetActionResponseError()
         {
             return new ActionResponse
             {
-                ErrorMessage = "RANDOM ERROR"
+                ErrorMessage = "RANDOM ERROR",
+                StatusCode = HttpStatusCode.BadRequest
             };
 
         }
