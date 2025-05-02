@@ -21,40 +21,57 @@ namespace ATbluePandaSDK.Services
         /// <param name="requestData">The data payload to be sent in the request body.</param>
         /// <param name="url">The target API endpoint URL.</param>
         /// <returns>
-        /// A task containing an <see cref="ActionResponse"/> representing the result of the request.
+        /// A task containing an <see cref="BskyActionResponse"/> representing the result of the request.
         /// </returns>
-        public static async Task<ActionResponse> SendRecordAsync(HttpClient httpClient, string accessToken, object requestData, string url, ILogger logger)
+        public static async Task<Response> SendRecordAsync(HttpClient httpClient, string accessToken, string url, HttpMethod method, object requestData = null)
         {
-            var jsonContent = new StringContent(JsonSerializer.Serialize(requestData), Encoding.UTF8, "application/json");
-
-            logger.LogInformation("Send data to : {Url}", url);
-            logger.LogInformation("Data sent : {RequestData}", JsonSerializer.Serialize(requestData));
+            StringContent? jsonContent = null;
+            if (requestData != null)
+            {
+                jsonContent = new StringContent(JsonSerializer.Serialize(requestData), Encoding.UTF8, "application/json");
+            }
 
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            HttpResponseMessage response = await httpClient.PostAsync(url, jsonContent);
-            logger.LogInformation("Status code : {StatusCode}", response.StatusCode);
-            ActionResponse actionResponse = null;
-            if (response.IsSuccessStatusCode)
+            HttpResponseMessage? response = null;
+            if (method.Equals(HttpMethod.Post))
+            {
+                response = await httpClient.PostAsync(url, jsonContent);
+            }
+            else if (method.Equals(HttpMethod.Get))
             {
 
+                response = await httpClient.GetAsync(url);
+            }
+            else
+            {
+                throw new NotSupportedException($"HTTP method {method} is not supported.");
+            }
+            Response? actionResponse;
+
+            if (response == null)
+            {
+                actionResponse = new Response()
+                {
+                    ErrorMessage = "No response from server."
+                };
+                return actionResponse;
+            }
+            if (response.IsSuccessStatusCode)
+            {
                 string postResult = await response.Content.ReadAsStringAsync();
-                logger.LogInformation("Response content : {ResponseContent}", postResult);
-                if(string.IsNullOrEmpty(postResult))
+                actionResponse = new Response();
+
+                if (!string.IsNullOrEmpty(postResult))
                 {
-                    actionResponse = new ActionResponse();
-                }
-                else
-                {
-                    actionResponse = JsonSerializer.Deserialize<ActionResponse>(postResult);
+                    actionResponse.Result = postResult;
                 }
             }
             else
             {
                 string errorResponse = await response.Content.ReadAsStringAsync();
-                logger.LogInformation("Response content : {ResponseContent}", errorResponse);
 
-                actionResponse =  new ActionResponse
+                actionResponse =  new Response
                 {
                     ErrorMessage = errorResponse
                 };
@@ -62,6 +79,20 @@ namespace ATbluePandaSDK.Services
 
             actionResponse.StatusCode = response.StatusCode;
             return actionResponse;
+        }
+
+        public static BskyActionResponse GetActionResponse(Response response)
+        {
+            if (response.isSuccess())
+            {
+                BskyActionResponse actionResponse = JsonSerializer.Deserialize<BskyActionResponse>(response.Result);
+                actionResponse.StatusCode = response.StatusCode;
+                return actionResponse;
+            }
+            else
+            {
+                return new BskyActionResponse(response);
+            }
         }
     }
 }

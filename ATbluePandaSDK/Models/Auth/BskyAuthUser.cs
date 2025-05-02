@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace ATPandaSDK.Models.Auth
 {
-    public class AuthUser : Response
+    public class BskyAuthUser : Response
     {
         [JsonPropertyName("did")]
         public string Did { get; set; }

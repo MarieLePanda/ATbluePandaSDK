@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 using ATbluePandaSDK.Models;
 namespace ATPandaSDK.Models.Feed
 {
-    // TimelineResponse myDeserializedClass = JsonConvert.Deserialize<TimelineResponse>(myJsonResponse);
+    // BskyTimeline myDeserializedClass = JsonConvert.Deserialize<BskyTimeline>(myJsonResponse);
     public class AspectRatio
     {
         [JsonPropertyName("height")]
@@ -28,6 +28,18 @@ namespace ATPandaSDK.Models.Feed
 
     public class Associated
     {
+        [JsonPropertyName("list")]
+        public int Lists { get; set; }
+
+        [JsonPropertyName("feedgen")]
+        public int Feedgens { get; set; }
+
+        [JsonPropertyName("starterPacks")]
+        public int StarterPacks { get; set; }
+
+        [JsonPropertyName("labeler")]
+        public bool Labeler { get; set; }
+
         [JsonPropertyName("chat")]
         public Chat Chat { get; set; }
     }
@@ -287,7 +299,7 @@ namespace ATPandaSDK.Models.Feed
         public Parent Parent { get; set; }
 
         [JsonPropertyName("root")]
-        public TimelineResponse Root { get; set; }
+        public BskyTimeline Root { get; set; }
 
         [JsonPropertyName("grandparentAuthor")]
         public GrandparentAuthor GrandparentAuthor { get; set; }
@@ -310,12 +322,12 @@ namespace ATPandaSDK.Models.Feed
     {
         public string rootAuthorLike { get; set; }
     }
-    public class ThreadResponse : Response
+    public class BskyThread : Response
     {
         public ThreadPost thread { get; set; }
     }
 
-    public class TimelineResponse : Response
+    public class BskyTimeline : Response
     {
         [JsonPropertyName("feed")]
         public List<Feed> Feed { get; set; }
@@ -409,7 +421,12 @@ namespace ATPandaSDK.Models.Feed
 
         [JsonPropertyName("embeddingDisabled")]
         public bool EmbeddingDisabled { get; set; }
+
+        [JsonPropertyName("knownFollowers")]
+        public KnownFollowers KnownFollowers { get; set; }
+
     }
+
 
 
 }

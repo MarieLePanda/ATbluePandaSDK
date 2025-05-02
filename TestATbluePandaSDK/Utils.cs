@@ -10,17 +10,18 @@ using ATbluePandaSDK.Models;
 using ATPandaSDK.Models.Feed;
 using System.Net;
 using System.Text.Json;
+using ATbluePandaSDK.Models.Account;
 
 namespace TestATbluePandaSDK
 {
     public class Utils
     {
-        public static AuthUser GetAuthUser()
+        public static BskyAuthUser GetAuthUser()
         {
-            return new AuthUser
+            return new BskyAuthUser
             {
                 Did = "did:plc:fakeDidUser",
-                Handle = "User.handle",
+                Handle = "BskyUser.handle",
                 Email = "example@wow.com",
                 EmailConfirmed = true,
                 AccessJwt = "jdhufshfusmmuehfjsufshfsyfsfjsi,jiojuhsfThisIsAFakeAccessJwtifjsifewjflsufjsdflsdujfdsfjofuhsdjklsj",
@@ -57,10 +58,10 @@ namespace TestATbluePandaSDK
             return mockHttpClient;
         }
 
-        public static ActionResponse GetActionResponse()
+        public static BskyActionResponse GetActionResponse()
         {
             CommitInfo commit = new CommitInfo { cid = "fefffdreidgnfzyy5kojfulfewhuiwe7hwehilszq2dulhosk6asmtrzyy", rev = "467euyi32w2k" };
-            ActionResponse fakeAction = new ActionResponse
+            BskyActionResponse fakeAction = new BskyActionResponse
             {
                 Cid = "467euyi32w2k",
                 Commit = commit,
@@ -72,10 +73,9 @@ namespace TestATbluePandaSDK
             return fakeAction;
         }
 
-
-        public static ActionResponse GetActionResponseError()
+        public static BskyActionResponse GetActionResponseError()
         {
-            return new ActionResponse
+            return new BskyActionResponse
             {
                 ErrorMessage = "RANDOM ERROR",
                 StatusCode = HttpStatusCode.BadRequest
@@ -83,14 +83,24 @@ namespace TestATbluePandaSDK
 
         }
 
+        public static UserProfileResponse GetUserProfileResponse()
+        {
+
+            return new UserProfileResponse
+            {
+                BskyUser = GetUser(),
+                StatusCode = HttpStatusCode.OK,
+                ErrorMessage = null
+            };
+        }
         public static User GetUser()
         {
             return new User
             {
                 Did = "did:plc:qwefakeDidUserdwqs",
-                Handle = "User.handle",
+                Handle = "BskyUser.handle",
                 Avatar = "https://example.com/avatar.jpg",
-                DisplayName = "User Name",
+                DisplayName = "BskyUser Name",
                 Viewer = new Viewer()
             };
 
@@ -119,9 +129,9 @@ namespace TestATbluePandaSDK
             return new Author
             {
                 Did = "did:plc:fakeDidUser",
-                Handle = "User.handle",
+                Handle = "BskyUser.handle",
                 Avatar = "https://example.com/avatar.jpg",
-                DisplayName = "User Name"
+                DisplayName = "BskyUser Name"
             };
         }
     }

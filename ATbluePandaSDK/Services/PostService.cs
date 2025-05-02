@@ -16,7 +16,6 @@ namespace ATPandaSDK.Services
     public class PostService
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger _logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PostService"/> class.
@@ -25,20 +24,16 @@ namespace ATPandaSDK.Services
         public PostService()
         {
             _httpClient = new HttpClient { BaseAddress = new Uri(Configuration.BaseUrl) };
-            _logger = new Logger<PostService>(new LoggerFactory());
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PostService"/> class.
         /// </summary>
         /// <param name="httpClient">The HTTP client used for making API requests.</param>
-        /// <param name="logger">An instance of <see cref="ILogger"/> to use.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="httpClient"/> or <paramref name="logger"/>is null.</exception>
-        public PostService(HttpClient httpClient, ILogger logger)
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="httpClient"/> is null.</exception>
+        public PostService(HttpClient httpClient)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient), "HttpClient cannot be null.");
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger), "ILogger cannot be null.");
-            _logger.LogDebug("PostService initialized");
         }
 
         /// <summary>
@@ -48,10 +43,9 @@ namespace ATPandaSDK.Services
         /// <param name="did">The decentralized identifier (DID) of the user liking the post.</param>
         /// <param name="postUri">The URI of the post to like.</param>
         /// <param name="postCid">The content ID (CID) of the post.</param>
-        /// <returns>A task containing an <see cref="ActionResponse"/> indicating the result of the operation.</returns>
-        public async Task<ActionResponse> LikePostAsync(string accessToken, string did, string postUri, string postCid)
+        /// <returns>A task containing an <see cref="BskyActionResponse"/> indicating the result of the operation.</returns>
+        public async Task<BskyActionResponse> LikePostAsync(string accessToken, string did, string postUri, string postCid)
         {
-            _logger.LogInformation("LikePost function");
             var requestData = new
             {
                 collection = Configuration.LikeCollection,
@@ -67,7 +61,9 @@ namespace ATPandaSDK.Services
                 }
             };
 
-            return await ATPUtils.SendRecordAsync(_httpClient, accessToken, requestData, Configuration.CreateRecord, _logger);
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessToken, Configuration.CreateRecord, HttpMethod.Post, requestData);
+            return ATPUtils.GetActionResponse(response);
+
         }
 
         /// <summary>
@@ -76,8 +72,8 @@ namespace ATPandaSDK.Services
         /// <param name="accessToken">The authentication token for authorization.</param>
         /// <param name="did">The decentralized identifier (DID) of the user unliking the post.</param>
         /// <param name="likeId">The identifier of the like record to delete.</param>
-        /// <returns>A task containing an <see cref="ActionResponse"/> indicating the result of the operation.</returns>
-        public async Task<ActionResponse> UnlikePostAsync(string accessToken, string did, string likeId)
+        /// <returns>A task containing an <see cref="BskyActionResponse"/> indicating the result of the operation.</returns>
+        public async Task<BskyActionResponse> UnlikePostAsync(string accessToken, string did, string likeId)
         {           
             var requestData = new
             {
@@ -86,7 +82,9 @@ namespace ATPandaSDK.Services
                 rkey = likeId
             };
 
-            return await ATPUtils.SendRecordAsync(_httpClient, accessToken, requestData, Configuration.DeleteRecord, _logger);
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessToken, Configuration.DeleteRecord, HttpMethod.Post, requestData);
+            return ATPUtils.GetActionResponse(response);
+
         }
 
         /// <summary>
@@ -95,8 +93,8 @@ namespace ATPandaSDK.Services
         /// <param name="accessToken">The authentication token for authorization.</param>
         /// <param name="postUri">The URI of the post for which to fetch the thread.</param>
         /// <param name="depth">The depth of the thread to retrieve.</param>
-        /// <returns>A task containing a <see cref="ThreadResponse"/> representing the post thread.</returns>
-        public async Task<ThreadResponse> GetPostThreadAsync(string accessToken, string postUri, int depth)
+        /// <returns>A task containing a <see cref="BskyThread"/> representing the post thread.</returns>
+        public async Task<BskyThread> GetPostThreadAsync(string accessToken, string postUri, int depth)
         {
             var url = $"{Configuration.GetPostThread}?uri={Uri.EscapeDataString(postUri)}&depth={depth}";
 
@@ -104,18 +102,16 @@ namespace ATPandaSDK.Services
 
             HttpResponseMessage response = await _httpClient.GetAsync(url);
 
-            response.EnsureSuccessStatusCode();
-
             if (response.IsSuccessStatusCode)
             {
                 string jsonResult = await response.Content.ReadAsStringAsync();
-                ThreadResponse thread = JsonSerializer.Deserialize<ThreadResponse>(jsonResult);
+                BskyThread thread = JsonSerializer.Deserialize<BskyThread>(jsonResult);
                 return thread;
             }
             else
             {
                 string errorResponse = await response.Content.ReadAsStringAsync();
-                return new ThreadResponse
+                return new BskyThread
                 {
                     ErrorMessage = errorResponse
                 };
@@ -128,8 +124,8 @@ namespace ATPandaSDK.Services
         /// <param name="accessToken">The authentication token for authorization.</param>
         /// <param name="did">The decentralized identifier (DID) of the user creating the post.</param>
         /// <param name="text">The text content of the post.</param>
-        /// <returns>A task containing an <see cref="ActionResponse"/> indicating the result of the operation.</returns>
-        public async Task<ActionResponse> CreatePostAsync(string accessToken, string did, string text)
+        /// <returns>A task containing an <see cref="BskyActionResponse"/> indicating the result of the operation.</returns>
+        public async Task<BskyActionResponse> CreatePostAsync(string accessToken, string did, string text)
         {
             
             var payload = new
@@ -150,7 +146,9 @@ namespace ATPandaSDK.Services
 
             HttpResponseMessage postResponse = await _httpClient.PostAsync($"{Configuration.CreateRecord}", postContent);
 
-            return await ATPUtils.SendRecordAsync(_httpClient, accessToken, payload, Configuration.CreateRecord, _logger);
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessToken, Configuration.CreateRecord, HttpMethod.Post, payload);
+            return ATPUtils.GetActionResponse(response);
+
         }
 
 
