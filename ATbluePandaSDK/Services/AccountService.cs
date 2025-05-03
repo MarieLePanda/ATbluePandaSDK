@@ -119,6 +119,35 @@ namespace ATbluePandaSDK.Services
             return ATPUtils.GetActionResponse(response);
         }
 
+        public async Task<BskyActionResponse> BlockUserAsync(string accessJwt, string did, string blockDid)
+        {
+            var recordData = new
+            {
+                collection = Configuration.BlockUser,
+                repo = did,
+                record = new
+                {
+                    subject = blockDid,
+                    createdAt = DateTime.UtcNow.ToString("o")
+                }
+            };
+
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessJwt, Configuration.CreateRecord, HttpMethod.Post, recordData);
+            return ATPUtils.GetActionResponse(response);
+        }
+
+        public async Task<BskyActionResponse> UnblockUserAsync(string accessJwt, string did, string blockDid)
+        {
+            var requestData = new
+            {
+                collection = Configuration.BlockUser,
+                repo = did,
+                rkey = blockDid
+            };
+
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessJwt, Configuration.DeleteRecord, HttpMethod.Post, requestData);
+            return ATPUtils.GetActionResponse(response);
+        }
         public async Task<UserProfileResponse> GetUserProfileAysnc(string accessJwt, string userDid)
         {
             var url = $"{Configuration.GetProfile}?actor={Uri.EscapeDataString(userDid)}";

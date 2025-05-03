@@ -515,6 +515,113 @@ namespace ATPandaSDK
             return actionResponse;
         }
 
+        public BskyActionResponse BlockUser(User user, BskyAuthUser? auth = null)
+        {
+            if (auth == null)
+                auth = AuthUser;
+
+            BskyActionResponse actionResponse = userActionVerification(auth, user);
+
+            if (actionResponse == null)
+            {
+                if (string.IsNullOrEmpty(user.Viewer.Blocking) == false)
+                {
+                    return new BskyActionResponse { ErrorMessage = ErrorMessage.USER_ALREADY_BLOCKED };
+                }
+                try
+                {
+                    return _accountService.BlockUserAsync(auth.AccessJwt, auth.Did, user.Did).Result;
+                }
+                catch (Exception ex)
+                {
+                    throw new BskyException(ex.Message);
+                }
+            }
+
+            return actionResponse;
+        }
+
+        public BskyActionResponse BlockUser(string userToBlockDid, string? userDid = null, string? userToken = null)
+        {
+
+            if (string.IsNullOrEmpty(userToken) && AuthUser != null)
+                userToken = AuthUser.AccessJwt;
+
+            if(string.IsNullOrEmpty(userDid) && AuthUser != null)
+                userDid = AuthUser.Did;
+
+            BskyActionResponse actionResponse = stringActionVerification(userToken, userDid, userToBlockDid);
+
+            if (actionResponse == null)
+            {
+                try
+                {
+                    return _accountService.BlockUserAsync(userToken, userDid, userToBlockDid).Result;
+                }
+                catch (Exception ex)
+                {
+                    throw new BskyException(ex.Message);
+                }
+            }
+
+            return actionResponse;
+        }
+
+        public BskyActionResponse UnblockUser(User user, BskyAuthUser? auth = null)
+        {
+            if (auth == null)
+                auth = AuthUser;
+
+            BskyActionResponse actionResponse = userActionVerification(auth, user);
+
+            if (actionResponse == null)
+            {
+                if (string.IsNullOrEmpty(user.Viewer.Blocking) == true)
+                {
+                    return new BskyActionResponse { ErrorMessage = ErrorMessage.USER_NOT_BLOCKED };
+                }
+                try
+                {
+                    string blockingId = user.Viewer.Blocking.Split("/").Last();
+
+                    return _accountService.UnblockUserAsync(auth.AccessJwt, auth.Did, blockingId).Result;
+                }
+                catch (Exception ex)
+                {
+                    throw new BskyException(ex.Message);
+                }
+            }
+
+            return actionResponse;
+        }
+
+        public BskyActionResponse UnblockUser(string blocking, string? userDid = null, string? userToken = null)
+        {
+            if (string.IsNullOrEmpty(userToken))
+                userToken = AuthUser.AccessJwt;
+
+            if (string.IsNullOrEmpty(userDid))
+                userDid = AuthUser.Did;
+
+            BskyActionResponse actionResponse = stringActionVerification(userToken, userDid, blocking);
+
+            if (actionResponse == null)
+            {
+                try
+                {
+                    string blockingId = blocking.Split("/").Last();
+
+                    return _accountService.UnblockUserAsync(userToken, userDid, blockingId).Result;
+                }
+                catch (Exception ex)
+                {
+                    throw new BskyException(ex.Message);
+                }
+            }
+
+            return actionResponse;
+        }
+
         /// <summary>
         /// Unmute a user.
         /// </summary>
@@ -619,6 +726,27 @@ namespace ATPandaSDK
             return null;
         }
 
+        private BskyActionResponse? stringActionVerification(string token, string userDid, string otherDid)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
+            }
+            if (string.IsNullOrEmpty(userDid))
+            {
+                throw new ArgumentNullException(nameof(userDid), ErrorMessage.ARG_IS_NULL);
+            }
+            if (string.IsNullOrEmpty(otherDid))
+            {
+                throw new ArgumentException(nameof(otherDid), ErrorMessage.ARG_IS_NULL);
+            }
+            if (userDid.Equals(otherDid))
+            {
+                return new BskyActionResponse { ErrorMessage = ErrorMessage.SAME_DID_USER };
+            }
+
+            return null;
+        }
 
     }
 }

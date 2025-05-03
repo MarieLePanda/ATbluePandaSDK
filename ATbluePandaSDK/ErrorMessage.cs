@@ -19,5 +19,7 @@ namespace ATbluePandaSDK
         public static string SAME_DID_USER = "Users cannot have the same DID";
         public static string USER_ALREADY_MUTED = "BskyUser is already muted.";
         public static string USER_NOT_MUTED = "BskyUser is not muted.";
+        public static string USER_ALREADY_BLOCKED = "BskyUser is already blocked.";
+        public static string USER_NOT_BLOCKED = "BskyUser is not blocked.";
     }
 }

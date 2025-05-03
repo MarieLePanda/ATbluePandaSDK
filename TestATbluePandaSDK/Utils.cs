@@ -93,9 +93,9 @@ namespace TestATbluePandaSDK
                 ErrorMessage = null
             };
         }
-        public static User GetUser()
+        public static User GetUser(Boolean blocked = false)
         {
-            return new User
+            User user = new User
             {
                 Did = "did:plc:qwefakeDidUserdwqs",
                 Handle = "BskyUser.handle",
@@ -103,6 +103,13 @@ namespace TestATbluePandaSDK
                 DisplayName = "BskyUser Name",
                 Viewer = new Viewer()
             };
+
+            if(blocked)
+            {
+                user.Viewer.Blocking = "ded//dedwdw/dewdwd/dweretertg";
+            }
+
+            return user;
 
         }
 

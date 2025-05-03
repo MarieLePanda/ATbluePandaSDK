@@ -21,6 +21,7 @@ namespace ATPandaSDK
         public static string GetTimeline        = "app.bsky.feed.getTimeline";
         public static string MuteUser           = "app.bsky.graph.mute";
         public static string UnMuteUser         = "app.bsky.graph.unmute";
+        public static string BlockUser          = "app.bsky.graph.block";
         public static string GetProfile         = "app.bsky.actor.getProfile";
     }
 }

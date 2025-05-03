@@ -407,6 +407,9 @@ namespace ATPandaSDK.Models.Feed
         [JsonPropertyName("muted")]
         public bool Muted { get; set; }
 
+        [JsonPropertyName("blocking")]
+        public string Blocking { get; set; }
+
         [JsonPropertyName("blockedBy")]
         public bool BlockedBy { get; set; }
 

@@ -7,7 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ATbluePandaSDK", "ATbluePan
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestATbluePandaSDK", "TestATbluePandaSDK\TestATbluePandaSDK.csproj", "{0BC4113A-7CF7-478D-BFCB-DB2FC2D430E3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp", "ConsoleApp\ConsoleApp.csproj", "{7C7D4CD9-350E-426F-8FCB-A2654F59CBF1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{0E9F6A1C-7412-4649-87E1-6BD5B2935A59}"
+	ProjectSection(ProjectDependencies) = postProject
+		{EEC3702A-B59B-41FB-A3CA-704259217E31} = {EEC3702A-B59B-41FB-A3CA-704259217E31}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,12 +26,15 @@ Global
 		{0BC4113A-7CF7-478D-BFCB-DB2FC2D430E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0BC4113A-7CF7-478D-BFCB-DB2FC2D430E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0BC4113A-7CF7-478D-BFCB-DB2FC2D430E3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7C7D4CD9-350E-426F-8FCB-A2654F59CBF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7C7D4CD9-350E-426F-8FCB-A2654F59CBF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7C7D4CD9-350E-426F-8FCB-A2654F59CBF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7C7D4CD9-350E-426F-8FCB-A2654F59CBF1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E9F6A1C-7412-4649-87E1-6BD5B2935A59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E9F6A1C-7412-4649-87E1-6BD5B2935A59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E9F6A1C-7412-4649-87E1-6BD5B2935A59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E9F6A1C-7412-4649-87E1-6BD5B2935A59}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C073D3D0-A697-4A02-9988-B043B0F395DE}
 	EndGlobalSection
 EndGlobal
