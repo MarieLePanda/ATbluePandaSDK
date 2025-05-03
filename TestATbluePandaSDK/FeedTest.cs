@@ -2,6 +2,7 @@
 using ATPandaSDK;
 using ATPandaSDK.Models.Auth;
 using ATPandaSDK.Models.Feed;
+using ATbluePandaSDK.Models;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using System;
 using System.Collections.Generic;
@@ -19,15 +20,15 @@ namespace TestATbluePandaSDK
         [Fact]
         public void GetTimelineSuccess()
         {
-            AuthUser authUser = Utils.GetAuthUser();
-            TimelineResponse timelineResponse = new TimelineResponse();
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            BskyTimeline timelineResponse = new BskyTimeline();
             timelineResponse.Feed = new List<Feed>();
 
             var fakeActionJSON = JsonSerializer.Serialize(timelineResponse);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Get, fakeActionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
-            TimelineResponse timeline = client.GetTimeline(authUser);
+            BskyTimeline timeline = client.GetTimeline();
             Assert.NotNull(timeline);
             Assert.NotNull(timeline.Feed);
             Assert.Null(timeline.ErrorMessage);
@@ -37,15 +38,15 @@ namespace TestATbluePandaSDK
         [Fact]
         public void GetTimelineFail()
         {
-            AuthUser authUser = Utils.GetAuthUser();
-            TimelineResponse timelineResponse = new TimelineResponse();
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            BskyTimeline timelineResponse = new BskyTimeline();
             timelineResponse.ErrorMessage = "Error message";
 
             var fakeActionJSON = JsonSerializer.Serialize(timelineResponse);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.ServiceUnavailable, HttpMethod.Get, fakeActionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
-            TimelineResponse timeline = client.GetTimeline(authUser);
+            BskyTimeline timeline = client.GetTimeline();
             Assert.NotNull(timeline);
             Assert.Null(timeline.Feed);
             Assert.NotEmpty(timeline.ErrorMessage);
@@ -55,38 +56,38 @@ namespace TestATbluePandaSDK
         [Fact]
         public void GetTimelineWrongArgumentFail()
         {
-            AuthUser authUser = Utils.GetAuthUser();
+            //Arrange
+            BskyAuthUser authUser = Utils.GetAuthUser();
 
-            
             var client = new ATPClient();
 
-            TimelineResponse timelineUserNull = client.GetTimeline(null);
-            TimelineResponse timelineNegativeLimit = client.GetTimeline(authUser, -30);
+            //Act
+            BskyException timelineUserNull = Assert.Throws<BskyException>(() => client.GetTimeline(auth: null));
+            ArgumentOutOfRangeException timelineNegativeLimit = Assert.Throws<ArgumentOutOfRangeException>(() => client.GetTimeline(-30, auth: authUser));
 
+            //Assert
             Assert.NotNull(timelineUserNull);
-            Assert.Null(timelineUserNull.Feed);
-            Assert.NotEmpty(timelineUserNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.USER_NOT_AUTHENTICATED, timelineUserNull.ErrorMessage);
+            Assert.NotEmpty(timelineUserNull.Message);
+            Assert.Contains(ErrorMessage.USER_NOT_AUTHENTICATED, timelineUserNull.Message);
 
             Assert.NotNull(timelineNegativeLimit);
-            Assert.Null(timelineNegativeLimit.Feed);
-            Assert.NotEmpty(timelineNegativeLimit.ErrorMessage);
-            Assert.Equal(ErrorMessage.LIMIT_IS_NEGATIVE, timelineNegativeLimit.ErrorMessage);
+            Assert.NotEmpty(timelineNegativeLimit.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NEGATIVE, timelineNegativeLimit.Message);
 
         }
 
         [Fact]
         public void GetCustomTimelineSuccess()
         {
-            AuthUser authUser = Utils.GetAuthUser();
-            TimelineResponse timelineResponse = new TimelineResponse();
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            BskyTimeline timelineResponse = new BskyTimeline();
             timelineResponse.Feed = new List<Feed>();
 
             var fakeActionJSON = JsonSerializer.Serialize(timelineResponse);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Get, fakeActionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
-            TimelineResponse timeline = client.GetCustomTimeline(authUser, "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot");
+            BskyTimeline timeline = client.GetCustomTimeline("at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot");
             
             Assert.NotNull(timeline);
             Assert.NotNull(timeline.Feed);
@@ -97,15 +98,15 @@ namespace TestATbluePandaSDK
         [Fact]
         public void GetCustomTimelineFail()
         {
-            AuthUser authUser = Utils.GetAuthUser();
-            TimelineResponse timelineResponse = new TimelineResponse();
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            BskyTimeline timelineResponse = new BskyTimeline();
             timelineResponse.ErrorMessage = "Error message";
 
             var fakeActionJSON = JsonSerializer.Serialize(timelineResponse);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.ServiceUnavailable, HttpMethod.Get, fakeActionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
-            TimelineResponse timeline = client.GetCustomTimeline(authUser, "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot");
+            BskyTimeline timeline = client.GetCustomTimeline("at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot");
             Assert.NotNull(timeline);
             Assert.Null(timeline.Feed);
             Assert.NotEmpty(timeline.ErrorMessage);
@@ -115,44 +116,41 @@ namespace TestATbluePandaSDK
         [Fact]
         public void GetCustomTimelineWrongArgumentFail()
         {
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
 
 
             var client = new ATPClient();
 
-            TimelineResponse timelineUserNull = client.GetCustomTimeline(null, "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot");
-            TimelineResponse timelineFeedNull = client.GetCustomTimeline(authUser, "");
-            TimelineResponse timelineNegativeLimit = client.GetCustomTimeline(authUser, "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot", -30);
+            BskyException timelineUserNull = Assert.Throws<BskyException>(() => client.GetCustomTimeline("at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot", auth: null));
+            ArgumentNullException timelineFeedNull = Assert.Throws<ArgumentNullException>(() => client.GetCustomTimeline("", auth:authUser));
+            ArgumentOutOfRangeException timelineNegativeLimit = Assert.Throws<ArgumentOutOfRangeException>(() => client.GetCustomTimeline("at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot", -30, auth:authUser));
 
             Assert.NotNull(timelineUserNull);
-            Assert.Null(timelineUserNull.Feed);
-            Assert.NotEmpty(timelineUserNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.USER_NOT_AUTHENTICATED, timelineUserNull.ErrorMessage);
+            Assert.NotEmpty(timelineUserNull.Message);
+            Assert.Contains(ErrorMessage.USER_NOT_AUTHENTICATED, timelineUserNull.Message);
 
             Assert.NotNull(timelineFeedNull);
-            Assert.Null(timelineFeedNull.Feed);
-            Assert.NotEmpty(timelineFeedNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.FEED_IS_NULL, timelineFeedNull.ErrorMessage);
+            Assert.NotEmpty(timelineFeedNull.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NULL, timelineFeedNull.Message);
 
             Assert.NotNull(timelineNegativeLimit);
-            Assert.Null(timelineNegativeLimit.Feed);
-            Assert.NotEmpty(timelineNegativeLimit.ErrorMessage);
-            Assert.Equal(ErrorMessage.LIMIT_IS_NEGATIVE, timelineNegativeLimit.ErrorMessage);
+            Assert.NotEmpty(timelineNegativeLimit.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NEGATIVE, timelineNegativeLimit.Message);
 
         }
 
         [Fact]
         public void GetAuthorTimelineSuccess()
         {
-            AuthUser authUser = Utils.GetAuthUser();
-            TimelineResponse timelineResponse = new TimelineResponse();
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            BskyTimeline timelineResponse = new BskyTimeline();
             timelineResponse.Feed = new List<Feed>();
 
             var fakeActionJSON = JsonSerializer.Serialize(timelineResponse);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Get, fakeActionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
-            TimelineResponse timeline = client.GetAuthorTimeline(authUser);
+            BskyTimeline timeline = client.GetAuthorTimeline();
 
             Assert.NotNull(timeline);
             Assert.NotNull(timeline.Feed);
@@ -163,15 +161,15 @@ namespace TestATbluePandaSDK
         [Fact]
         public void GetAuthorTimelineFail()
         {
-            AuthUser authUser = Utils.GetAuthUser();
-            TimelineResponse timelineResponse = new TimelineResponse();
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            BskyTimeline timelineResponse = new BskyTimeline();
             timelineResponse.ErrorMessage = "Error message";
 
             var fakeActionJSON = JsonSerializer.Serialize(timelineResponse);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.ServiceUnavailable, HttpMethod.Get, fakeActionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
-            TimelineResponse timeline = client.GetAuthorTimeline(authUser);
+            BskyTimeline timeline = client.GetAuthorTimeline();
             Assert.NotNull(timeline);
             Assert.Null(timeline.Feed);
             Assert.NotEmpty(timeline.ErrorMessage);
@@ -181,23 +179,22 @@ namespace TestATbluePandaSDK
         [Fact]
         public void GetAuthorTimelineWrongArgumentFail()
         {
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
 
 
             var client = new ATPClient();
 
-            TimelineResponse timelineUserNull = client.GetAuthorTimeline(null);
-            TimelineResponse timelineNegativeLimit = client.GetAuthorTimeline(authUser, -30);
+
+            BskyException timelineUserNull = Assert.Throws<BskyException>(() => client.GetAuthorTimeline(auth:null));
+            ArgumentOutOfRangeException timelineNegativeLimit = Assert.Throws<ArgumentOutOfRangeException>(() => client.GetAuthorTimeline(-30, auth:authUser));
 
             Assert.NotNull(timelineUserNull);
-            Assert.Null(timelineUserNull.Feed);
-            Assert.NotEmpty(timelineUserNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.USER_NOT_AUTHENTICATED, timelineUserNull.ErrorMessage);
+            Assert.NotEmpty(timelineUserNull.Message);
+            Assert.Contains(ErrorMessage.USER_NOT_AUTHENTICATED, timelineUserNull.Message);
 
             Assert.NotNull(timelineNegativeLimit);
-            Assert.Null(timelineNegativeLimit.Feed);
-            Assert.NotEmpty(timelineNegativeLimit.ErrorMessage);
-            Assert.Equal(ErrorMessage.LIMIT_IS_NEGATIVE, timelineNegativeLimit.ErrorMessage);
+            Assert.NotEmpty(timelineNegativeLimit.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NEGATIVE, timelineNegativeLimit.Message);
 
         }
     }

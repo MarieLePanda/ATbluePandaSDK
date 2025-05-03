@@ -19,15 +19,15 @@ namespace TestATbluePandaSDK
         public void AuthentificationSuccess()
         {
             // Arrange
-            AuthUser authUser = Utils.GetAuthUser();
-            var authRequest = new AuthRequest("User", "password");
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            var authRequest = new AuthRequest("BskyUser", "password");
             var authUserJson = JsonSerializer.Serialize(authUser);
 
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Post, authUserJson);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(null, httpClient);
 
             //Act
-            AuthUser user = client.Authenticate(authRequest);
+            BskyAuthUser user = client.Authenticate(authRequest);
 
             //Verify
             Assert.NotNull(user);
@@ -39,8 +39,8 @@ namespace TestATbluePandaSDK
         public void AuthentificationFail()
         {
             // Arrange
-            var authRequest = new AuthRequest("User", "password");
-            var authUser = new AuthUser
+            var authRequest = new AuthRequest("BskyUser", "password");
+            var authUser = new BskyAuthUser
             {
                 ErrorMessage = "Unauthorized"
             };
@@ -49,10 +49,10 @@ namespace TestATbluePandaSDK
 
 
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.Unauthorized, HttpMethod.Post, authUserJson);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(null, httpClient);
 
             //Act
-            AuthUser user = client.Authenticate(authRequest);
+            BskyAuthUser user = client.Authenticate(authRequest);
 
             //Verify
             Assert.NotNull(user);
@@ -64,43 +64,37 @@ namespace TestATbluePandaSDK
         public void AuthentificationWithEmptyCredentialFail()
         {
             // Arrange
-            AuthRequest authRequest = null;
+            AuthRequest authRequestNull = null;
             AuthRequest authRequestWithoutUser = new AuthRequest("", "password");
-            AuthRequest authRequestWithoutPassword = new AuthRequest("user", "");
+            AuthRequest authRequestWithoutPassword = new AuthRequest("userNull", "");
             AuthRequest authRequestWithoutUserAndPassword = new AuthRequest("", "");
 
 
             var client = new ATPClient();
 
             //Act
-            AuthUser user = client.Authenticate(authRequest);
-            AuthUser userWithoutUser = client.Authenticate(authRequestWithoutUser);
-            AuthUser userWithoutPassword = client.Authenticate(authRequestWithoutPassword);
-            AuthUser userWithoutUserAndPassword = client.Authenticate(authRequestWithoutUserAndPassword);
-
+            ArgumentNullException userNull = Assert.Throws<ArgumentNullException>(() => client.Authenticate(authRequestNull));
+            ArgumentException userWithoutUser = Assert.Throws<ArgumentException>(() => client.Authenticate(authRequestWithoutUser));
+            ArgumentException userWithoutPassword = Assert.Throws<ArgumentException>(() => client.Authenticate(authRequestWithoutPassword));
+            ArgumentException userWithoutUserAndPassword = Assert.Throws<ArgumentException>(() => client.Authenticate(authRequestWithoutUserAndPassword));
 
             //Verify
-            Assert.NotNull(user);
-            Assert.Null(user.Did);
-            Assert.NotEmpty(user.ErrorMessage);
-            Assert.Equal(ErrorMessage.AUTH_REQUEST_IS_NULL, user.ErrorMessage);
+            Assert.NotNull(userNull);
+            Assert.NotEmpty(userNull.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NULL, userNull.Message);
 
             Assert.NotNull(userWithoutUser);
+            Assert.NotEmpty(userWithoutUser.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_INVALID, userWithoutUser.Message);
+
             Assert.NotNull(userWithoutPassword);
+            Assert.NotEmpty(userWithoutPassword.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_INVALID, userWithoutPassword.Message);
+
             Assert.NotNull(userWithoutUserAndPassword);
+            Assert.NotEmpty(userWithoutUserAndPassword.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_INVALID, userWithoutUserAndPassword.Message);
 
-            Assert.Null(userWithoutUser.Did);
-            Assert.Null(userWithoutPassword.Did);
-            Assert.Null(userWithoutUserAndPassword.Did);
-
-            Assert.NotEmpty(userWithoutPassword.ErrorMessage);
-            Assert.NotEmpty(userWithoutUser.ErrorMessage);
-            Assert.NotEmpty(userWithoutUserAndPassword.ErrorMessage);
-
-            Assert.Equal(ErrorMessage.USER_NAME_OR_PASSWORD_IS_NULL, userWithoutUser.ErrorMessage);
-            Assert.Equal(ErrorMessage.USER_NAME_OR_PASSWORD_IS_NULL, userWithoutPassword.ErrorMessage);
-            Assert.Equal(ErrorMessage.USER_NAME_OR_PASSWORD_IS_NULL, userWithoutUserAndPassword.ErrorMessage);
-
-        }       
+        }
     }
 }

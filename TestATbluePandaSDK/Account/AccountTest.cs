@@ -14,7 +14,7 @@ using ATPandaSDK.Models.Feed;
 using ATbluePandaSDK;
 using ATbluePandaSDK.Models.Account;
 
-namespace TestATbluePandaSDK
+namespace TestATbluePandaSDK.Account
 {
     public class AccountTest
     {
@@ -491,37 +491,7 @@ namespace TestATbluePandaSDK
             Assert.NotEmpty(userProfile.Message);
 
         }
-        //Todo
-        //[Fact]
-        public void BlockUser()
-        {
-            ATPClient client = new ATPClient();
-            User userToBlock = Utils.GetUser();
-            BskyTimeline timelineResponse = client.GetAuthorTimeline();
-            foreach(var feed in timelineResponse.Feed)
-            {
-                Console.WriteLine(feed.Post.Author.DisplayName);
-                Console.WriteLine(feed.Post.Record.Text);
-                var replies = client.GetPostThread(feed.Post.Uri).thread.replies;
-                foreach (var reply in replies)
-                {
-                    if(reply.post.Author.Did != client.AuthUser.Did)
-                    {
-                        userToBlock = reply.post.Author;
-                        break;
-                    }
-                    Console.WriteLine(reply.post.Author.DisplayName);
-                    Console.WriteLine(reply.post.Record.Text);
-                }
-            }
-            
-            BskyActionResponse actionResponse = client.MuteUser(userToBlock);
-
-            Assert.NotNull(actionResponse);
-            Assert.Equal(HttpStatusCode.OK, actionResponse.StatusCode);
-            Assert.Null(actionResponse.ErrorMessage);
-
-        }
+        
 
     }
 }

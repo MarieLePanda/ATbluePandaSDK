@@ -10,13 +10,14 @@ using System.Threading.Tasks;
 using System.Security.Cryptography;
 using ATbluePandaSDK.Models;
 using Microsoft.Extensions.Logging;
+using ATPandaSDK.Models.Feed;
+using ATbluePandaSDK.Models.Account;
 
 namespace ATbluePandaSDK.Services
 {
     public class AccountService
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger _logger;
         /// <summary>
         /// Initializes a new instance of <see cref="AccountService"/> with a default HTTP client.
         /// Sets up the HTTP client with the base address defined in the application's configuration and a logger
@@ -24,19 +25,16 @@ namespace ATbluePandaSDK.Services
         public AccountService()
         {
             _httpClient = new HttpClient { BaseAddress = new Uri(Configuration.BaseUrl) };
-            _logger = new Logger<AccountService>(new LoggerFactory());
         }
 
         /// <summary>
         /// Initializes a new instance of <see cref="AccountService"/> with a provided HTTP client.
         /// </summary>
         /// <param name="httpClient">An instance of <see cref="HttpClient"/> to use.</param>
-        /// <param name="logger">An instance of <see cref="ILogger"/> to use.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="httpClient"/> or <paramref name="logger"/>is null.</exception>
-        public AccountService(HttpClient httpClient, ILogger logger)
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="httpClient"/>is null.</exception>
+        public AccountService(HttpClient httpClient)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient), "HttpClient cannot be null.");
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger), "ILogger cannot be null.");
         }
 
         /// <summary>
@@ -45,8 +43,8 @@ namespace ATbluePandaSDK.Services
         /// <param name="accessToken">The authentication token of the user.</param>
         /// <param name="didFollwer">The decentralized identifier (DID) of the follower.</param>
         /// <param name="didFollowee">The decentralized identifier (DID) of the user to follow.</param>
-        /// <returns>An asynchronous task containing an <see cref="ActionResponse"/> indicating the result of the operation.</returns>
-        public async Task<ActionResponse> FollowAsync(string accessToken, string didFollwer, string didFollowee)
+        /// <returns>An asynchronous task containing an <see cref="BskyActionResponse"/> indicating the result of the operation.</returns>
+        public async Task<BskyActionResponse> FollowAsync(string accessToken, string didFollwer, string didFollowee)
         {
             var recordData = new
             {
@@ -59,7 +57,9 @@ namespace ATbluePandaSDK.Services
                 }
             };
 
-            return await ATPUtils.SendRecordAsync(_httpClient, accessToken, recordData, Configuration.CreateRecord, _logger);
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessToken, Configuration.CreateRecord, HttpMethod.Post, recordData);
+            return ATPUtils.GetActionResponse(response);
+
         }
 
         /// <summary>
@@ -68,8 +68,8 @@ namespace ATbluePandaSDK.Services
         /// <param name="accessToken">The authentication token of the user.</param>
         /// <param name="did">The decentralized identifier (DID) of the user.</param>
         /// <param name="followId">The unique identifier of the follow relationship to remove.</param>
-        /// <returns>An asynchronous task containing an <see cref="ActionResponse"/> indicating the result of the operation.</returns>
-        public async Task<ActionResponse> UnfollowAsync(string accessToken, string did, string followId)
+        /// <returns>An asynchronous task containing an <see cref="BskyActionResponse"/> indicating the result of the operation.</returns>
+        public async Task<BskyActionResponse> UnfollowAsync(string accessToken, string did, string followId)
         {
             var requestData = new
             {
@@ -78,27 +78,94 @@ namespace ATbluePandaSDK.Services
                 rkey = followId
             };
 
-            return await ATPUtils.SendRecordAsync(_httpClient, accessToken, requestData, Configuration.DeleteRecord, _logger);
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessToken, Configuration.DeleteRecord, HttpMethod.Post, requestData);
+            return ATPUtils.GetActionResponse(response);
+
         }
 
-        public async Task<ActionResponse> MuteUser(string accessJwt, string did, string muteDid)
+        /// <summary>
+        /// Allows a user to mute another user.
+        /// </summary>
+        /// <param name="accessToken">The authentication token of the user.</param>
+        /// <param name="did">The decentralized identifier (DID) of the user.</param>
+        /// <param name="muteDid">The unique identifier of the user to mute.</param>
+        /// <returns>An asynchronous task containing an <see cref="BskyActionResponse"/> indicating the result of the operation.</returns>
+        public async Task<BskyActionResponse> MuteUserAsync(string accessJwt, string did, string muteDid)
         {
             var recordData = new
             {
                 actor = muteDid
             };
 
-            return await ATPUtils.SendRecordAsync(_httpClient, accessJwt, recordData, "app.bsky.graph.muteActor", _logger);
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessJwt, Configuration.MuteUser, HttpMethod.Post, recordData);
+            return ATPUtils.GetActionResponse(response);
         }
 
-        public async Task<ActionResponse> UnMuteUser(string accessJwt, string did, string muteDid)
+        /// <summary>
+        /// Allows a user to unmute another user.
+        /// </summary>
+        /// <param name="accessToken">The authentication token of the user.</param>
+        /// <param name="did">The decentralized identifier (DID) of the user.</param>
+        /// <param name="unMuteDid">The unique identifier of the user to unmute.</param>
+        /// <returns>An asynchronous task containing an <see cref="BskyActionResponse"/> indicating the result of the operation.</returns>
+        public async Task<BskyActionResponse> UnMuteUserAsync(string accessJwt, string did, string unMuteDid)
         {
             var recordData = new
             {
-                actor = muteDid
+                actor = unMuteDid
             };
 
-            return await ATPUtils.SendRecordAsync(_httpClient, accessJwt, recordData, "app.bsky.graph.unmuteActor", _logger);
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessJwt, Configuration.UnMuteUser, HttpMethod.Post, recordData);
+            return ATPUtils.GetActionResponse(response);
         }
+
+        public async Task<BskyActionResponse> BlockUserAsync(string accessJwt, string did, string blockDid)
+        {
+            var recordData = new
+            {
+                collection = Configuration.BlockUser,
+                repo = did,
+                record = new
+                {
+                    subject = blockDid,
+                    createdAt = DateTime.UtcNow.ToString("o")
+                }
+            };
+
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessJwt, Configuration.CreateRecord, HttpMethod.Post, recordData);
+            return ATPUtils.GetActionResponse(response);
+        }
+
+        public async Task<BskyActionResponse> UnblockUserAsync(string accessJwt, string did, string blockDid)
+        {
+            var requestData = new
+            {
+                collection = Configuration.BlockUser,
+                repo = did,
+                rkey = blockDid
+            };
+
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessJwt, Configuration.DeleteRecord, HttpMethod.Post, requestData);
+            return ATPUtils.GetActionResponse(response);
+        }
+        public async Task<UserProfileResponse> GetUserProfileAysnc(string accessJwt, string userDid)
+        {
+            var url = $"{Configuration.GetProfile}?actor={Uri.EscapeDataString(userDid)}";
+            Response response = await ATPUtils.SendRecordAsync(_httpClient, accessJwt, url, HttpMethod.Get);
+            if (response.isSuccess())
+            {
+                User user = JsonSerializer.Deserialize<User>(response.Result);
+                UserProfileResponse userProfileResponse = new UserProfileResponse();
+                userProfileResponse.BskyUser = user;
+                userProfileResponse.StatusCode = response.StatusCode;
+                return userProfileResponse;
+            }
+            else
+            {
+                return new UserProfileResponse(response);
+            }
+        }
+
+
     }
 }

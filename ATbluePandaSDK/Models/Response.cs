@@ -11,7 +11,7 @@ namespace ATbluePandaSDK.Models
     {
         public HttpStatusCode StatusCode { get; set; }
         public string ErrorMessage { get; set; }
-
+        public string Result { get; set; }
         public bool isSuccess()
         {
             return string.IsNullOrWhiteSpace(ErrorMessage);

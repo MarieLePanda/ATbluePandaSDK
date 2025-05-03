@@ -12,6 +12,7 @@ using ATbluePandaSDK.Services;
 
 using Microsoft.Extensions.Logging;
 using ATbluePandaSDK;
+using ATbluePandaSDK.Models.Account;
 namespace ATPandaSDK
 {
     public class ATPClient
@@ -20,7 +21,7 @@ namespace ATPandaSDK
         private readonly PostService _postService;
         private readonly FeedService _feedService;
         private readonly AccountService _accountService;
-        private readonly ILogger _logger;
+        public BskyAuthUser AuthUser { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ATPClient"/> class with default service implementations.
@@ -28,38 +29,32 @@ namespace ATPandaSDK
         public ATPClient()
         {
             HttpClient httpClient = new HttpClient { BaseAddress = new Uri(Configuration.BaseUrl) };
-            using var loggerFactory = LoggerFactory.Create(builder =>
-            {
-                //builder.AddConsole();  // Log dans la console
-                //builder.SetMinimumLevel(LogLevel.Debug);
-            });
-
-            _logger = loggerFactory.CreateLogger<ATPClient>();
-            _authService = new AuthService(httpClient, _logger);
-            _postService = new PostService(httpClient, _logger);
-            _feedService = new FeedService(httpClient, _logger);
-            _accountService = new AccountService(httpClient, _logger);
+            _authService = new AuthService(httpClient);
+            _postService = new PostService(httpClient);
+            _feedService = new FeedService(httpClient);
+            _accountService = new AccountService(httpClient);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ATPClient"/> class with default service implementations.
         /// </summary>
         /// <param name="httpClient">An instance of <see cref="HttpClient"/> to use.</param>
-        public ATPClient(HttpClient httpClient)
+        public ATPClient(BskyAuthUser? auth = null, HttpClient? httpClient = null)
         {
-            HttpClient _httpClient = httpClient;
-            using var loggerFactory = LoggerFactory.Create(builder =>
+            if(httpClient == null)
             {
-                builder.AddConsole();  // Log dans la console
-                builder.SetMinimumLevel(LogLevel.Debug);
-            });
+                httpClient = new HttpClient { BaseAddress = new Uri(Configuration.BaseUrl) };
+            }
 
-            _logger = loggerFactory.CreateLogger<ATPClient>();
-            _logger.LogInformation("Test");
-            _authService = new AuthService(httpClient, _logger);
-            _postService = new PostService(httpClient, _logger);
-            _feedService = new FeedService(httpClient, _logger);
-            _accountService = new AccountService(httpClient, _logger);
+            if(auth != null)
+            {
+                AuthUser = auth;
+            }
+            HttpClient _httpClient = httpClient;
+            _authService = new AuthService(httpClient);
+            _postService = new PostService(httpClient);
+            _feedService = new FeedService(httpClient);
+            _accountService = new AccountService(httpClient);
         }
 
         /// <summary>
@@ -84,45 +79,63 @@ namespace ATPandaSDK
         /// </summary>
         /// <param name="auth">The authentication response containing the user's tokens.</param>
         /// <param name="text">The text content of the post.</param>
-        /// <returns>A <see cref="ActionResponse"/> object containing the result of the post creation.</returns>
-        public AuthUser Authenticate(AuthRequest authRequest)
+        /// <returns>A <see cref="BskyActionResponse"/> object containing the result of the post creation.</returns>
+        /// <remarks>The authenticate user will be also saved in the BskyAuthUser property of this class and use in future
+        /// client usage if the BskyAuthUser parameter is not set</remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the authentification request is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the authentification request have properies not set correctly.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service.</exception>
+        public BskyAuthUser Authenticate(AuthRequest authRequest) 
         {
+            
             if (authRequest == null)
             {
-                return new AuthUser { ErrorMessage = ErrorMessage.AUTH_REQUEST_IS_NULL };
+                throw new ArgumentNullException(nameof(authRequest), ErrorMessage.ARG_IS_NULL);
+
+            }else if(string.IsNullOrEmpty(authRequest.Username) || string.IsNullOrEmpty(authRequest.Password))
+            {
+                throw new ArgumentException(nameof(authRequest), ErrorMessage.ARG_IS_INVALID);
+            }
+            else
+            {
+                try
+                {
+                    AuthUser = _authService.AuthenticateAsync(authRequest).Result;
+
+                }
+                catch (Exception e)
+                {
+                    throw new BskyException(e.Message);
+                }
+
             }
 
-            if (string.IsNullOrEmpty(authRequest.Username) || string.IsNullOrEmpty(authRequest.Password))
-            {
-                return new AuthUser { ErrorMessage = ErrorMessage.USER_NAME_OR_PASSWORD_IS_NULL };
-            }
-            try
-            {
-                return _authService.AuthenticateAsync(authRequest).Result;
-            }
-            catch (Exception e)
-            {
-                return new AuthUser { ErrorMessage = e.Message };
-            }
+            return AuthUser;
 
         }
 
         /// <summary>
         /// Creates a post with the specified text.
         /// </summary>
-        /// <param name="auth">The authentication response containing the user's tokens.</param>
         /// <param name="text">The text content of the post.</param>
-        /// <returns>A <see cref="ActionResponse"/> object containing the result of the post creation.</returns>
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>A <see cref="BskyActionResponse"/> object containing the result of the post creation.</returns>
         /// <remarks>Don't be mean with other when you post</remarks>
-        public ActionResponse CreatePost(AuthUser auth, string text)
+        /// <exception cref="ArgumentNullException">Thrown when the text is null.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+        public BskyActionResponse CreatePost(string text, BskyAuthUser? auth = null)
         {
+            if (auth == null)
+                auth = AuthUser;
+
             if (auth == null || !auth.IsAuthenticated())
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.USER_NOT_AUTHENTICATED };
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
             }
             if (string.IsNullOrWhiteSpace(text))
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.TEXT_IS_NULL };
+                throw new ArgumentNullException(nameof(text), ErrorMessage.ARG_IS_NULL);
             }
             try
             {
@@ -130,27 +143,32 @@ namespace ATPandaSDK
             }
             catch (Exception e)
             {
-                return new ActionResponse { ErrorMessage = e.Message };
-
+                throw new BskyException(e.Message);
             }
         }
 
         /// <summary>
         /// Retrieves the user's timeline asynchronously.
         /// </summary>
-        /// <param name="auth">The authentication response containing the user's tokens.</param>
         /// <param name="limit">The maximum number of posts to retrieve. Default is 30.</param>
         /// <param name="cursor">The cursor for pagination. Default is null.</param>
-        /// <returns>A <see cref="TimelineResponse"/> object containing the user's timeline.</returns
-        public TimelineResponse GetTimeline(AuthUser auth, int limit = 30, string cursor = null)
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>A <see cref="BskyTimeline"/> object containing the user's timeline.</returns
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the limit is negative.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+        public BskyTimeline GetTimeline(int limit = 30, string? cursor = null, BskyAuthUser? auth = null)
         {
+            if (auth == null)
+                auth = AuthUser;
+
             if (auth == null || !auth.IsAuthenticated())
             {
-                return new TimelineResponse { ErrorMessage = ErrorMessage.USER_NOT_AUTHENTICATED };
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
             }
             if (limit <= 0)
             {
-                return new TimelineResponse { ErrorMessage = ErrorMessage.LIMIT_IS_NEGATIVE };
+                throw new ArgumentOutOfRangeException(nameof(limit), ErrorMessage.ARG_IS_NEGATIVE);
             }
             try
             {
@@ -158,31 +176,38 @@ namespace ATPandaSDK
             }
             catch(Exception e)
             {
-                return new TimelineResponse { ErrorMessage = e.Message };
+                throw new BskyException(e.Message);
             }
         }
 
         /// <summary>
         /// Retrieves a custom timeline asynchronously.
         /// </summary>
-        /// <param name="auth">The authentication response containing the user's tokens.</param>
         /// <param name="feed">The feed identifier.</param>
         /// <param name="limit">The maximum number of posts to retrieve. Default is 30.</param>
         /// <param name="cursor">The cursor for pagination. Default is null.</param>
-        /// <returns>A <see cref="TimelineResponse"/> object containing the custom timeline.</returns>
-        public TimelineResponse GetCustomTimeline(AuthUser auth, string feed, int limit = 30, string cursor = null)
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>A <see cref="BskyTimeline"/> object containing the custom timeline.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the limit is negative.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when the custom feed is null.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+        public BskyTimeline GetCustomTimeline(string feed, int limit = 30, string? cursor = null, BskyAuthUser? auth = null)
         {
+            if (auth == null)
+                auth = AuthUser;
+
             if (auth == null || !auth.IsAuthenticated())
             {
-                return new TimelineResponse { ErrorMessage = ErrorMessage.USER_NOT_AUTHENTICATED };
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
             }
-            if(string.IsNullOrWhiteSpace(feed))
+            if (string.IsNullOrWhiteSpace(feed))
             {
-                return new TimelineResponse { ErrorMessage = ErrorMessage.FEED_IS_NULL };
+                throw new ArgumentNullException(nameof(feed), ErrorMessage.ARG_IS_NULL );
             }
             if(limit <= 0)
             {
-                return new TimelineResponse { ErrorMessage = ErrorMessage.LIMIT_IS_NEGATIVE };
+                throw new ArgumentOutOfRangeException(nameof(limit), ErrorMessage.ARG_IS_NEGATIVE);
             }
             try
             {
@@ -190,26 +215,32 @@ namespace ATPandaSDK
             }
             catch (Exception e)
             {
-                return new TimelineResponse { ErrorMessage = e.Message };
+                throw new BskyException(e.Message);
             }
         }
 
         /// <summary>
         /// Retrieves the author's timeline asynchronously.
         /// </summary>
-        /// <param name="auth">The authentication response containing the user's tokens.</param>
         /// <param name="limit">The maximum number of posts to retrieve. Default is 30.</param>
         /// <param name="cursor">The cursor for pagination. Default is null.</param>
-        /// <returns>A <see cref="TimelineResponse"/> object containing the author's timeline.</returns>
-        public TimelineResponse GetAuthorTimeline(AuthUser auth, int limit = 30, string cursor = null)
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>A <see cref="BskyTimeline"/> object containing the author's timeline.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the limit is negative.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+        public BskyTimeline GetAuthorTimeline(int limit = 30, string cursor = null, BskyAuthUser auth = null)
         {
+            if (auth == null)
+                auth = AuthUser;
+
             if (auth == null || !auth.IsAuthenticated())
             {
-                return new TimelineResponse { ErrorMessage = ErrorMessage.USER_NOT_AUTHENTICATED };
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
             }
             if (limit <= 0)
             {
-                return new TimelineResponse { ErrorMessage = ErrorMessage.LIMIT_IS_NEGATIVE };
+                throw new ArgumentOutOfRangeException(nameof(limit), ErrorMessage.ARG_IS_NEGATIVE);
             }
 
             try
@@ -218,66 +249,81 @@ namespace ATPandaSDK
             }
             catch(Exception e)
             {
-                return new TimelineResponse { ErrorMessage = e.Message };
+                throw new BskyException(e.Message);
             }
         }
 
         /// <summary>
         /// Retrieves the thread of a post asynchronously.
         /// </summary>
-        /// <param name="auth">The authentication response containing the user's tokens.</param>
         /// <param name="postUri">The URI of the post.</param>
         /// <param name="depth">The depth of the thread to retrieve. Default is 3.</param>
-        /// <returns>A <see cref="ThreadResponse"/> object containing the post thread.</returns>
-        public ThreadResponse GetPostThread(AuthUser auth, string postUri, int depth = 3)
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>A <see cref="BskyThread"/> object containing the post thread.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the limit is negative.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when the post uri is null.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+        public BskyThread GetPostThread(string postUri, int depth = 3, BskyAuthUser auth = null)
         {
+            if (auth == null)
+                auth = AuthUser;
+
             if (auth == null || !auth.IsAuthenticated())
             {
-                return new ThreadResponse { ErrorMessage = ErrorMessage.USER_NOT_AUTHENTICATED };
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
             }
-            if(string.IsNullOrEmpty(postUri))
+            if (string.IsNullOrEmpty(postUri))
             {
-                return new ThreadResponse { ErrorMessage = ErrorMessage.POST_URI_IS_NULL };
+                throw new ArgumentNullException(nameof(postUri), ErrorMessage.ARG_IS_NULL);
             }
             if (depth <= 0)
             {
-                return new ThreadResponse { ErrorMessage = ErrorMessage.LIMIT_IS_NEGATIVE };
+                throw new ArgumentOutOfRangeException(nameof(depth), ErrorMessage.ARG_IS_NEGATIVE);
             }
 
             try
             {
                 return _postService.GetPostThreadAsync(auth.AccessJwt, postUri, depth).Result;
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return new ThreadResponse { ErrorMessage = ex.Message };
+                throw new BskyException(e.Message);
             }
         }
 
         /// <summary>
         /// Unfollows a user asynchronously.
         /// </summary>
-        /// <param name="authUser">The authenticated user attempting to unfollow.</param>
         /// <param name="followee">The user to be unfollowed.</param>
-        /// <returns>An <see cref="ActionResponse"/> indicating success or failure.</returns>
-        /// <remarks>I hope yo uare doing it for @pykpyky</remarks>
-        public ActionResponse Follow(AuthUser authUser, User followee)
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>An <see cref="BskyActionResponse"/> indicating success or failure.</returns>
+        /// <remarks>I hope you are doing it for @pykpyky</remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the user where you want perform the action is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the user where you want perform have mandatories fields nul as Viewer or Did.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+
+        public BskyActionResponse Follow(User followee, BskyAuthUser auth = null)
         {
-            ActionResponse actionResponse = userActionVerification(authUser, followee);
+            if (auth == null)
+                auth = AuthUser;
+
+            BskyActionResponse actionResponse = userActionVerification(auth, followee);
 
             if(actionResponse == null)
             {
                 if (followee.Viewer.Following != null)
                 {
-                    return new ActionResponse { ErrorMessage = ErrorMessage.USER_ALREADY_FOLLOWED };
+                    return new BskyActionResponse { ErrorMessage = ErrorMessage.USER_ALREADY_FOLLOWED };
                 }
                 try
                 {
-                    return _accountService.FollowAsync(authUser.AccessJwt, authUser.Did, followee.Did).Result;
+                    return _accountService.FollowAsync(auth.AccessJwt, auth.Did, followee.Did).Result;
                 }
                 catch (Exception ex)
                 {
-                    return new ActionResponse { ErrorMessage = ex.Message };
+                    throw new BskyException(ex.Message);
                 }
             }
 
@@ -287,27 +333,34 @@ namespace ATPandaSDK
         /// <summary>
         /// Unfollows a user asynchronously.
         /// </summary>
-        /// <param name="authUser">The authenticated user attempting to unfollow.</param>
         /// <param name="followee">The user to be unfollowed.</param>
-        /// <returns>An <see cref="ActionResponse"/> indicating success or failure.</returns>
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>An <see cref="BskyActionResponse"/> indicating success or failure.</returns>
         /// <remarks>Could you not check who you followed first ?</remarks>
-        public ActionResponse Unfollow(AuthUser authUser, User followee)
+        /// <exception cref="ArgumentNullException">Thrown when the user where you want perform the action is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the user where you want perform have mandatories fields nul as Viewer or Did.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+        public BskyActionResponse Unfollow(User followee, BskyAuthUser auth = null)
         {
-            ActionResponse actionResponse = userActionVerification(authUser, followee);
+            if (auth == null)
+                auth = AuthUser;
+
+            BskyActionResponse actionResponse = userActionVerification(auth, followee);
             if(actionResponse == null)
             {
                 if (string.IsNullOrEmpty(followee.Viewer.Following))
                 {
-                    return new ActionResponse { ErrorMessage = ErrorMessage.USER_NOT_FOLLOWED };
+                    return new BskyActionResponse { ErrorMessage = ErrorMessage.USER_NOT_FOLLOWED };
                 }
                 try
                 {
                     string followId = followee.Viewer.Following.Split("/").Last();
-                    return _accountService.UnfollowAsync(authUser.AccessJwt, authUser.Did, followId).Result;
+                    return _accountService.UnfollowAsync(auth.AccessJwt, auth.Did, followId).Result;
                 }
                 catch (Exception ex)
                 {
-                    return new ActionResponse { ErrorMessage = ex.Message };
+                    throw new BskyException(ex.Message);
                 }
             }
 
@@ -317,18 +370,25 @@ namespace ATPandaSDK
         /// <summary>
         /// Unlikes a post asynchronously.
         /// </summary>
-        /// <param name="auth">The authenticated user attempting to unlike a post.</param>
         /// <param name="post">The post to be unliked.</param>
-        /// <returns>An <see cref="ActionResponse"/> indicating success or failure.</returns>
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>An <see cref="BskyActionResponse"/> indicating success or failure.</returns>
         /// <remarks>It's a nice action</remarks>
-        public ActionResponse LikePost(AuthUser auth, Post post)
+        /// <exception cref="ArgumentNullException">Thrown when the post where you want perform the action is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the post where you want perform have mandatories fields nul as Viewer or Cid.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+        public BskyActionResponse LikePost(Post post, BskyAuthUser auth = null)
         {
-            ActionResponse actionResponse = likeOrUnlikeVerification(auth, post);
+            if (auth == null)
+                auth = AuthUser;
+
+            BskyActionResponse actionResponse = likeOrUnlikeVerification(auth, post);
             if (actionResponse == null)
             {
                 if (post.Viewer.Like != null)
                 {
-                    return new ActionResponse { ErrorMessage = ErrorMessage.POST_ALREADY_LIKED };
+                    return new BskyActionResponse { ErrorMessage = ErrorMessage.POST_ALREADY_LIKED };
                 }
                 try
                 {
@@ -336,7 +396,7 @@ namespace ATPandaSDK
                 }
                 catch (Exception ex)
                 {
-                    return new ActionResponse { ErrorMessage = ex.Message };
+                    throw new BskyException(ex.Message);
                 }
             }
 
@@ -345,20 +405,27 @@ namespace ATPandaSDK
         }
 
         /// <summary>
-        /// Unlikes a post asynchronously.
+        /// Unlikes a post.
         /// </summary>
-        /// <param name="auth">The authenticated user attempting to unlike a post.</param>
         /// <param name="post">The post to be unliked.</param>
-        /// <returns>An <see cref="ActionResponse"/> indicating success or failure.</returns>
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>An <see cref="BskyActionResponse"/> indicating success or failure.</returns>
         /// <remarks>Why did you like first?</remarks>
-        public ActionResponse UnlikePost(AuthUser auth, Post post)
+        /// <exception cref="ArgumentNullException">Thrown when the post where you want perform the action is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the post where you want perform have mandatories fields nul as Viewer or Cid.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+        public BskyActionResponse UnlikePost(Post post, BskyAuthUser auth = null)
         {
-            ActionResponse actionResponse = likeOrUnlikeVerification(auth, post);
+            if (auth == null)
+                auth = AuthUser;
+
+            BskyActionResponse actionResponse = likeOrUnlikeVerification(auth, post);
             if (actionResponse == null)
             {
                 if (post.Viewer.Like == null)
                 {
-                    return new ActionResponse { ErrorMessage = ErrorMessage.POST_NOT_LIKED };
+                    return new BskyActionResponse { ErrorMessage = ErrorMessage.POST_NOT_LIKED };
 
                 }
                 try
@@ -368,80 +435,257 @@ namespace ATPandaSDK
                 }
                 catch (Exception ex)
                 {
-                    return new ActionResponse { ErrorMessage = ex.Message };
+                    throw new BskyException(ex.Message);
                 }
             }
             return actionResponse;
         }
 
-        public ActionResponse MuteUser(AuthUser authUser, User user)
+        /// <summary>
+        /// Mute a user.
+        /// </summary>
+        /// <param name="user">The user to be muted.</param>
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>An <see cref="BskyActionResponse"/> indicating success or failure.</returns>
+        /// <remarks>You can still block the user later if mute is not enough</remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the user where you want perform the action is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the user where you want perform have mandatories fields nul as Viewer or Did.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+        public BskyActionResponse MuteUser(User user, BskyAuthUser? auth = null)
         {
-            ActionResponse actionResponse = userActionVerification(authUser, user);
+            if (auth == null)
+                auth = AuthUser;
+
+            BskyActionResponse actionResponse = userActionVerification(auth, user);
 
             if (actionResponse == null)
             {
                 if (user.Viewer.Muted == true)
                 {
-                    return new ActionResponse { ErrorMessage = ErrorMessage.USER_ALREADY_MUTED };
+                    return new BskyActionResponse { ErrorMessage = ErrorMessage.USER_ALREADY_MUTED };
                 }
                 try
                 {
-                    return _accountService.MuteUser(authUser.AccessJwt, authUser.Did, user.Did).Result;
+                    return _accountService.MuteUserAsync(auth.AccessJwt, auth.Did, user.Did).Result;
                 }
                 catch (Exception ex)
                 {
-                    return new ActionResponse { ErrorMessage = ex.Message };
+                    throw new BskyException(ex.Message);
                 }
             }
 
             return actionResponse;
         }
 
-        public ActionResponse UnMuteUser(AuthUser authUser, User user)
+        /// <summary>
+        /// Unmute a user.
+        /// </summary>
+        /// <param name="user">The user to be unmuted.</param>
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>An <see cref="BskyActionResponse"/> indicating success or failure.</returns>
+        /// <remarks>We will not juge you</remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the user where you want perform the action is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the user where you want perform have mandatories fields nul as Viewer or Did.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+        public BskyActionResponse UnMuteUser(User user, BskyAuthUser? auth = null)
         {
-            ActionResponse actionResponse = userActionVerification(authUser, user);
+            if (auth == null)
+                auth = AuthUser;
+
+            BskyActionResponse actionResponse = userActionVerification(auth, user);
 
             if (actionResponse == null)
             {
                 if (user.Viewer.Muted == false)
                 {
-                    return new ActionResponse { ErrorMessage = ErrorMessage.USER_NOT_MUTED };
+                    return new BskyActionResponse { ErrorMessage = ErrorMessage.USER_NOT_MUTED };
                 }
                 try
                 {
-                    return _accountService.UnMuteUser(authUser.AccessJwt, authUser.Did, user.Did).Result;
+                    return _accountService.UnMuteUserAsync(auth.AccessJwt, auth.Did, user.Did).Result;
                 }
                 catch (Exception ex)
                 {
-                    return new ActionResponse { ErrorMessage = ex.Message };
+                    throw new BskyException(ex.Message);
                 }
             }
 
             return actionResponse;
         }
+
+        public BskyActionResponse BlockUser(User user, BskyAuthUser? auth = null)
+        {
+            if (auth == null)
+                auth = AuthUser;
+
+            BskyActionResponse actionResponse = userActionVerification(auth, user);
+
+            if (actionResponse == null)
+            {
+                if (string.IsNullOrEmpty(user.Viewer.Blocking) == false)
+                {
+                    return new BskyActionResponse { ErrorMessage = ErrorMessage.USER_ALREADY_BLOCKED };
+                }
+                try
+                {
+                    return _accountService.BlockUserAsync(auth.AccessJwt, auth.Did, user.Did).Result;
+                }
+                catch (Exception ex)
+                {
+                    throw new BskyException(ex.Message);
+                }
+            }
+
+            return actionResponse;
+        }
+
+        public BskyActionResponse BlockUser(string userToBlockDid, string? userDid = null, string? userToken = null)
+        {
+
+            if (string.IsNullOrEmpty(userToken) && AuthUser != null)
+                userToken = AuthUser.AccessJwt;
+
+            if(string.IsNullOrEmpty(userDid) && AuthUser != null)
+                userDid = AuthUser.Did;
+
+            BskyActionResponse actionResponse = stringActionVerification(userToken, userDid, userToBlockDid);
+
+            if (actionResponse == null)
+            {
+                try
+                {
+                    return _accountService.BlockUserAsync(userToken, userDid, userToBlockDid).Result;
+                }
+                catch (Exception ex)
+                {
+                    throw new BskyException(ex.Message);
+                }
+            }
+
+            return actionResponse;
+        }
+
+        public BskyActionResponse UnblockUser(User user, BskyAuthUser? auth = null)
+        {
+            if (auth == null)
+                auth = AuthUser;
+
+            BskyActionResponse actionResponse = userActionVerification(auth, user);
+
+            if (actionResponse == null)
+            {
+                if (string.IsNullOrEmpty(user.Viewer.Blocking) == true)
+                {
+                    return new BskyActionResponse { ErrorMessage = ErrorMessage.USER_NOT_BLOCKED };
+                }
+                try
+                {
+                    string blockingId = user.Viewer.Blocking.Split("/").Last();
+
+                    return _accountService.UnblockUserAsync(auth.AccessJwt, auth.Did, blockingId).Result;
+                }
+                catch (Exception ex)
+                {
+                    throw new BskyException(ex.Message);
+                }
+            }
+
+            return actionResponse;
+        }
+
+        public BskyActionResponse UnblockUser(string blocking, string? userDid = null, string? userToken = null)
+        {
+            if (string.IsNullOrEmpty(userToken))
+                userToken = AuthUser.AccessJwt;
+
+            if (string.IsNullOrEmpty(userDid))
+                userDid = AuthUser.Did;
+
+            BskyActionResponse actionResponse = stringActionVerification(userToken, userDid, blocking);
+
+            if (actionResponse == null)
+            {
+                try
+                {
+                    string blockingId = blocking.Split("/").Last();
+
+                    return _accountService.UnblockUserAsync(userToken, userDid, blockingId).Result;
+                }
+                catch (Exception ex)
+                {
+                    throw new BskyException(ex.Message);
+                }
+            }
+
+            return actionResponse;
+        }
+
+        /// <summary>
+        /// Unmute a user.
+        /// </summary>
+        /// <param name="user">The user to get.</param>
+        /// <param name="auth">The authentication response containing the user's tokens. Default is null, in this case the 
+        /// BskyAuthUser property of the client will be used</param>
+        /// <returns>An <see cref="UserProfileResponse"/> The user profile requested.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the user where you want perform the action is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the user where you want perform have mandatories fields nul as Viewer or Did.</exception>
+        /// <exception cref="BskyException">Thrown when an error occur during the interaction with BlueSky service or the user in not authenticated.</exception>
+        public User GetUserProfil(string userDid, BskyAuthUser? auth=null)
+        { 
+            if (auth == null)
+                auth = AuthUser;
+
+            if (AuthUser == null || !AuthUser.IsAuthenticated())
+            {
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
+            }
+            try
+            {
+                UserProfileResponse userProfileResponse = _accountService.GetUserProfileAysnc(AuthUser.AccessJwt, userDid).Result;
+                if(userProfileResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    return userProfileResponse.BskyUser;
+                }
+                else
+                {
+                    throw new BskyException(userProfileResponse.ErrorMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new BskyException(ex.Message);
+            }
+        }
+
         /// <summary>
         /// Verifies if the user can like or unlike a post.
         /// </summary>
         /// <param name="auth">The authenticated user.</param>
         /// <param name="post">The post to be verified.</param>
-        /// <returns>An <see cref="ActionResponse"/> indicating verification status or null if valid.</returns>
-        private ActionResponse? likeOrUnlikeVerification(AuthUser auth, Post post)
+        /// <returns>An <see cref="BskyActionResponse"/> indicating verification status or null if valid.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the post where you want perform the action is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the post where you want perform have mandatories fields nul as Viewer or Cid.</exception>
+        /// <exception cref="BskyException">Thrown when the user in not authenticated.</exception>
+
+        private BskyActionResponse? likeOrUnlikeVerification(BskyAuthUser auth, Post post)
         {
             if (auth == null || !auth.IsAuthenticated())
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.USER_NOT_AUTHENTICATED };
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
             }
             if (post == null)
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.POST_IS_NULL };
+                throw new ArgumentNullException(nameof(post), ErrorMessage.ARG_IS_NULL);
             }
             if (post.Viewer == null)
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.VIEWER_IS_NULL };
+                throw new ArgumentException(nameof(post), ErrorMessage.ARG_IS_NULL);
             }
             if (string.IsNullOrEmpty(post.Uri) || string.IsNullOrEmpty(post.Cid))
             {
-                return new ActionResponse { ErrorMessage =  ErrorMessage.POST_URI_OR_CID_IS_NULL};
+                throw new ArgumentException(nameof(post), ErrorMessage.ARG_IS_NULL);
             }
 
             return null;
@@ -452,33 +696,57 @@ namespace ATPandaSDK
         /// </summary>
         /// <param name="authUser">The authenticated user.</param>
         /// <param name="user">The user whith you want interact.</param>
-        /// <returns>An <see cref="ActionResponse"/> indicating verification status or null if valid.</returns>
-        private ActionResponse? userActionVerification(AuthUser authUser, User user)
+        /// <returns>An <see cref="BskyActionResponse"/> indicating verification status or null if valid.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the user where you want perform the action is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the user where you want perform have mandatories fields nul as Viewer or Did.</exception>
+        /// <exception cref="BskyException">Thrown when the user in not authenticated.</exception>
+        private BskyActionResponse? userActionVerification(BskyAuthUser authUser, User user)
         {
             if (authUser == null || !authUser.IsAuthenticated())
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.USER_NOT_AUTHENTICATED };
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
             }
             if (user == null)
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.USER_IS_NULL };
+                throw new ArgumentNullException(nameof(user), ErrorMessage.ARG_IS_NULL);
             }
             if (user.Viewer == null)
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.VIEWER_IS_NULL };
+                throw new ArgumentException(nameof(user), ErrorMessage.ARG_IS_NULL);
             }
             if (string.IsNullOrEmpty(user.Did))
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.USER_DID_IS_NULL };
+                throw new ArgumentException(nameof(user), ErrorMessage.ARG_IS_NULL);
             }
             if (authUser.Did.Equals(user.Did))
             {
-                return new ActionResponse { ErrorMessage = ErrorMessage.SAME_DID_USER };
+                return new BskyActionResponse { ErrorMessage = ErrorMessage.SAME_DID_USER };
             }
 
             return null;
         }
 
+        private BskyActionResponse? stringActionVerification(string token, string userDid, string otherDid)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
+            }
+            if (string.IsNullOrEmpty(userDid))
+            {
+                throw new ArgumentNullException(nameof(userDid), ErrorMessage.ARG_IS_NULL);
+            }
+            if (string.IsNullOrEmpty(otherDid))
+            {
+                throw new ArgumentException(nameof(otherDid), ErrorMessage.ARG_IS_NULL);
+            }
+            if (userDid.Equals(otherDid))
+            {
+                return new BskyActionResponse { ErrorMessage = ErrorMessage.SAME_DID_USER };
+            }
+
+            return null;
+        }
 
     }
 }
