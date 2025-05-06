@@ -168,7 +168,7 @@ namespace ATPandaSDK
             }
             if (limit <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(limit), ErrorMessage.ARG_IS_NEGATIVE);
+                throw new ArgumentOutOfRangeException(nameof(limit), ErrorMessage.LIMIT_NOT_SUPPORTED);
             }
             try
             {
@@ -207,7 +207,7 @@ namespace ATPandaSDK
             }
             if(limit <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(limit), ErrorMessage.ARG_IS_NEGATIVE);
+                throw new ArgumentOutOfRangeException(nameof(limit), ErrorMessage.LIMIT_NOT_SUPPORTED);
             }
             try
             {
@@ -240,7 +240,7 @@ namespace ATPandaSDK
             }
             if (limit <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(limit), ErrorMessage.ARG_IS_NEGATIVE);
+                throw new ArgumentOutOfRangeException(nameof(limit), ErrorMessage.LIMIT_NOT_SUPPORTED);
             }
 
             try
@@ -279,7 +279,7 @@ namespace ATPandaSDK
             }
             if (depth <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(depth), ErrorMessage.ARG_IS_NEGATIVE);
+                throw new ArgumentOutOfRangeException(nameof(depth), ErrorMessage.LIMIT_NOT_SUPPORTED);
             }
 
             try
@@ -660,6 +660,86 @@ namespace ATPandaSDK
         }
 
         /// <summary>
+        /// Retrieves the list of users currently blocked by the authenticated user.
+        /// </summary>
+        /// <param name="auth">The authentication context containing the user's tokens. 
+        /// If null, the <see cref="AuthUser"/> property of the client will be used.</param>
+        /// <param name="limit">Maximum number of blocked users to return. Must be between 1 and 100.</param>
+        /// <returns>A list of <see cref="Block"/> entries representing the blocked users.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the specified limit is not within the valid range (1–100).</exception>
+        /// <exception cref="BskyException">Thrown if the user is not authenticated or if an error occurs during the call to the Bluesky service.</exception>
+        public List<Block> GetBlocks(BskyAuthUser? auth = null, int limit = 50)
+        {
+            if (auth == null)
+                auth = AuthUser;
+
+            if (limit <= 0 || limit > 100)
+            {
+                throw new ArgumentOutOfRangeException(nameof(limit), ErrorMessage.LIMIT_NOT_SUPPORTED);
+            }
+
+            if (AuthUser == null || !AuthUser.IsAuthenticated())
+            {
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
+            }
+
+            try
+            {
+                BskyBlockByResponse blockByResponse = _accountService.GetBlocksAsync(auth.AccessJwt, limit).Result;
+                if (blockByResponse.isSuccess())
+                    return blockByResponse.Blocks;
+                else
+                    throw new BskyException(blockByResponse.ErrorMessage);
+            }
+            catch (Exception ex)
+            {
+                throw new BskyException(ex.Message);
+            }
+            
+        }
+
+        /// <summary>
+        /// Retrieves the list of account block records for a given actor. This shows who has been blocked by the specified account.
+        /// </summary>
+        /// <param name="actor">The user whose block records should be retrieved.</param>
+        /// <param name="auth">The authentication context containing the user's tokens. 
+        /// If null, the <see cref="AuthUser"/> property of the client will be used.</param>
+        /// <param name="limit">Maximum number of block records to return. Must be between 1 and 100.</param>
+        /// <param name="cursor">Whether to paginate the result using a cursor (if more than one page of records exists).</param>
+        /// <returns>A list of <see cref="Records"/> corresponding to block entries in the specified actor's repository.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the specified limit is not within the valid range (1–100).</exception>
+        /// <exception cref="BskyException">Thrown if the user is not authenticated or if an error occurs during the call to the Bluesky service.</exception>
+        public List<Records> GetAccountsBlocked(User actor, BskyAuthUser? auth = null, int limit = 50, bool cursor = false)
+        {
+            if (auth == null)
+                auth = AuthUser;
+
+            if (limit <= 0 || limit > 100)
+            {
+                throw new ArgumentOutOfRangeException(nameof(limit), ErrorMessage.LIMIT_NOT_SUPPORTED);
+            }
+
+            if (AuthUser == null || !AuthUser.IsAuthenticated())
+            {
+                throw new BskyException(ErrorMessage.USER_NOT_AUTHENTICATED);
+            }
+
+            try
+            {
+                ListRecordResponse recordResponse = _accountService.GetListRecord(auth.AccessJwt, actor.Did, Configuration.BlockUser, limit, cursor).Result;
+                if (recordResponse.isSuccess())
+                    return recordResponse.Records;
+                else
+                    throw new BskyException(recordResponse.ErrorMessage);
+            }
+            catch (Exception ex)
+            {
+                throw new BskyException(ex.Message);
+            }
+
+        }
+
+        /// <summary>
         /// Verifies if the user can like or unlike a post.
         /// </summary>
         /// <param name="auth">The authenticated user.</param>
@@ -747,6 +827,7 @@ namespace ATPandaSDK
 
             return null;
         }
+
 
     }
 }

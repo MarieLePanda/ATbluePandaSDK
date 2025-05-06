@@ -422,7 +422,7 @@ namespace TestATbluePandaSDK
 
             Assert.NotNull(PostResultWrongLimit);
             Assert.NotEmpty(PostResultWrongLimit.Message);
-            Assert.Contains(ErrorMessage.ARG_IS_NEGATIVE, PostResultWrongLimit.Message);
+            Assert.Contains(ErrorMessage.LIMIT_NOT_SUPPORTED, PostResultWrongLimit.Message);
 
         }
 

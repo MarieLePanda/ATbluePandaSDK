@@ -5,6 +5,9 @@ using ATPandaSDK;
 using System.Net;
 using System.Text.Json;
 using ATbluePandaSDK;
+using ATbluePandaSDK.Models.Account;
+using Xunit.Sdk;
+using ErrorMessage = ATbluePandaSDK.ErrorMessage;
 
 namespace TestATbluePandaSDK.Account
 {
@@ -104,7 +107,7 @@ namespace TestATbluePandaSDK.Account
         {
             ATPClient client = new ATPClient();
             BskyAuthUser authUser = Utils.GetAuthUser();
-            User userBlocked = Utils.GetUser(blocked:true);
+            User userBlocked = Utils.GetUser(blocked: true);
 
             BskyException ActionResponseAuthNull = Assert.Throws<BskyException>(() => client.BlockUser(userBlocked, null));
 
@@ -171,7 +174,7 @@ namespace TestATbluePandaSDK.Account
 
             ATPClient client = new ATPClient();
             BskyAuthUser authUser = Utils.GetAuthUser();
-            User userBlocked = Utils.GetUser(blocked:true);
+            User userBlocked = Utils.GetUser(blocked: true);
             userBlocked.Viewer.Blocking = "blocked";
 
             BskyActionResponse ActionResponseUserBlocked = client.BlockUser(userBlocked, authUser);
@@ -189,10 +192,10 @@ namespace TestATbluePandaSDK.Account
         {
             ATPClient client = new ATPClient();
             BskyAuthUser authUser = Utils.GetAuthUser();
-            
+
             User userEmpty = new User();
             User userStringNull = new User();
-            
+
             ArgumentNullException ActionResponseUserNull = Assert.Throws<ArgumentNullException>(() => client.BlockUser(null, authUser));
             ArgumentException ActionResponseUserStringNull = Assert.Throws<ArgumentException>(() => client.BlockUser(userStringNull, authUser));
             ArgumentException ActionResponseUserEmpty = Assert.Throws<ArgumentException>(() => client.BlockUser(userEmpty, authUser));
@@ -237,7 +240,7 @@ namespace TestATbluePandaSDK.Account
         public void UnblockSuccess()
         {
             BskyAuthUser authUser = Utils.GetAuthUser();
-            User user = Utils.GetUser(blocked:true);
+            User user = Utils.GetUser(blocked: true);
             BskyActionResponse fakeAction = Utils.GetActionResponse();
 
             var fakeActionJSON = JsonSerializer.Serialize(fakeAction);
@@ -258,7 +261,7 @@ namespace TestATbluePandaSDK.Account
         public void UnblockErrorFromBskyFail()
         {
             BskyAuthUser authUser = Utils.GetAuthUser();
-            User user = Utils.GetUser(blocked:true);
+            User user = Utils.GetUser(blocked: true);
             BskyActionResponse fakeAction = Utils.GetActionResponseError();
 
             var fakeActionJSON = JsonSerializer.Serialize(fakeAction);
@@ -349,6 +352,131 @@ namespace TestATbluePandaSDK.Account
             Assert.NotNull(ActionResponseUserEmpty);
             Assert.NotEmpty(ActionResponseUserEmpty.Message);
             Assert.Contains(ErrorMessage.ARG_IS_NULL, ActionResponseUserEmpty.Message);
+        }
+
+        [Fact]
+        public void GetBlocksSuccess()
+        {
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            List<Block> blocks = new List<Block>();
+            blocks.Add(new Block());
+            blocks.Add(new Block());
+            blocks.Add(new Block());
+
+            BskyBlockByResponse fakeResponse = new BskyBlockByResponse();
+            fakeResponse.Blocks = blocks;
+            var fakeActionJSON = JsonSerializer.Serialize(fakeResponse);
+
+            HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Get, fakeActionJSON);
+
+            var client = new ATPClient(authUser, httpClient);
+
+            List<Block> blocksResult = client.GetBlocks();
+
+            Assert.NotNull(blocksResult);
+            Assert.NotEmpty(blocksResult);
+            Assert.Equal(3, blocksResult.Count);
+
+        }
+
+        [Fact]
+        public void GetBlocksErrorFromBskyFail()
+        {
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            
+            BskyBlockByResponse fakeResponse = new BskyBlockByResponse();
+            fakeResponse.ErrorMessage = "Error message";
+            var fakeActionJSON = JsonSerializer.Serialize(fakeResponse);
+
+            HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.InternalServerError, HttpMethod.Get, fakeActionJSON);
+
+            var client = new ATPClient(authUser, httpClient);
+
+            BskyException blocksResult = Assert.Throws<BskyException>(() => client.GetBlocks());
+
+            Assert.NotNull(blocksResult);
+            Assert.NotEmpty(blocksResult.Message);
+
+        }
+
+        [Fact]
+        public void GetBlocksAuthNotConnectedOrNullFail()
+        {
+
+            var client = new ATPClient();
+
+            BskyException authNull = Assert.Throws<BskyException>(() => client.GetBlocks(null));
+
+            Assert.NotNull(authNull);
+            Assert.NotEmpty(authNull.Message);
+            Assert.Contains(ErrorMessage.USER_NOT_AUTHENTICATED, authNull.Message);
+
+        }
+
+        [Fact]
+        public void GetBlocksWrongLimitFail()
+        {
+            BskyAuthUser authUser = Utils.GetAuthUser();
+
+            var client = new ATPClient();
+
+            ArgumentOutOfRangeException limitNegative = Assert.Throws<ArgumentOutOfRangeException>(() => client.GetBlocks(authUser, -50));
+            ArgumentOutOfRangeException limitToHigh = Assert.Throws<ArgumentOutOfRangeException>(() => client.GetBlocks(authUser, 150));
+
+            Assert.NotNull(limitNegative);
+            Assert.NotEmpty(limitNegative.Message);
+            Assert.Contains(ErrorMessage.LIMIT_NOT_SUPPORTED, limitNegative.Message);
+
+            Assert.NotNull(limitToHigh);
+            Assert.NotEmpty(limitToHigh.Message);
+            Assert.Contains(ErrorMessage.LIMIT_NOT_SUPPORTED, limitToHigh.Message);
+
+        }
+
+        [Fact]
+        public void GetAccountsBlockedSuccess()
+        {
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            User user = Utils.GetUser();
+
+            List<Records> records = new List<Records>();
+            records.Add(new Records());
+            records.Add(new Records());
+            
+            ListRecordResponse fakeResponse = new ListRecordResponse();
+            fakeResponse.Records = records;
+            var fakeActionJSON = JsonSerializer.Serialize(fakeResponse);
+
+            HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Get, fakeActionJSON);
+
+            var client = new ATPClient(authUser, httpClient);
+
+            List<Records> recordsResult = client.GetAccountsBlocked(user);
+
+            Assert.NotNull(recordsResult);
+            Assert.NotEmpty(recordsResult);
+            Assert.Equal(2, recordsResult.Count);
+
+        }
+
+        [Fact]
+        public void GetAccountsBlockedErrorFromBskyFail()
+        {
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            User user = Utils.GetUser();
+
+            ListRecordResponse fakeResponse = new ListRecordResponse();
+            fakeResponse.ErrorMessage = "Error message";
+            var fakeActionJSON = JsonSerializer.Serialize(fakeResponse);
+
+            HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.InternalServerError, HttpMethod.Get, fakeActionJSON);
+
+            var client = new ATPClient(authUser, httpClient);
+
+            BskyException recordsResult = Assert.Throws<BskyException>(() => client.GetAccountsBlocked(user));
+
+            Assert.NotNull(recordsResult);
+            Assert.NotEmpty(recordsResult.Message);
 
         }
 

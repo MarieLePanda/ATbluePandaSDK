@@ -13,6 +13,7 @@ namespace ATPandaSDK
         public static string Auth               = "com.atproto.server.createSession";
         public static string CreateRecord       = "com.atproto.repo.createRecord";
         public static string DeleteRecord       = "com.atproto.repo.deleteRecord";
+        public static string ListRecords        = "com.atproto.repo.listRecords";
         public static string LikeCollection     = "app.bsky.feed.like";
         public static string FollowCollection   = "app.bsky.graph.follow";
         public static string GetPostThread      = "app.bsky.feed.getPostThread";
@@ -23,5 +24,6 @@ namespace ATPandaSDK
         public static string UnMuteUser         = "app.bsky.graph.unmute";
         public static string BlockUser          = "app.bsky.graph.block";
         public static string GetProfile         = "app.bsky.actor.getProfile";
+        public static string GetBlocks          = "app.bsky.graph.getBlocks";
     }
 }
