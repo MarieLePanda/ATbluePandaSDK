@@ -166,6 +166,83 @@ namespace ATbluePandaSDK.Services
             }
         }
 
+        public async Task<BskyBlockByResponse> GetBlocksAsync(string accessToken, int limit)
+        {
+            var url = $"{Configuration.GetBlocks}?limit={limit}";
+
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            HttpResponseMessage response = await _httpClient.GetAsync(url);
+            BskyBlockByResponse blockByResponse = new BskyBlockByResponse();
+            string result = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                blockByResponse = JsonSerializer.Deserialize<BskyBlockByResponse>(result);
+                blockByResponse.Result = result;
+            }
+            else
+            {
+                blockByResponse.ErrorMessage = result;
+            }
+
+            blockByResponse.StatusCode = response.StatusCode;
+
+            return blockByResponse;
+        }
+
+        public async Task<ListRecordResponse> GetListRecord(string accessToken, string actorDid, string collection, int limit, bool cursorFlag)
+        {
+
+            ListRecordResponse recordResponse = null;
+            string cursor = null;
+            do
+            {
+                var url = $"{Configuration.ListRecords}?" +
+                $"repo={Uri.EscapeDataString(actorDid)}" +
+                $"&collection={collection}" +
+                $"&limit={limit}";
+
+                if (!string.IsNullOrEmpty(cursor) && cursorFlag)
+                {
+                    url += $"&cursor={Uri.EscapeDataString(cursor)}";
+                }
+
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+                HttpResponseMessage response = await _httpClient.GetAsync(url);
+                ListRecordResponse listRecord = new ListRecordResponse();
+                string result = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    if(recordResponse == null)
+                    {
+                        recordResponse = JsonSerializer.Deserialize<ListRecordResponse>(result);
+                    }
+                    else
+                    {
+                        ListRecordResponse partialResponse = JsonSerializer.Deserialize<ListRecordResponse>(result);
+                        recordResponse.Records.AddRange(partialResponse.Records);
+                        recordResponse.Cursor = partialResponse.Cursor;
+                    }
+
+                    recordResponse.Result += result;
+                }
+                else
+                {
+                    recordResponse.ErrorMessage = result;
+                }
+
+                recordResponse.StatusCode = response.StatusCode;
+
+                if(cursorFlag)
+                    cursor = recordResponse.Cursor;
+
+            } while(!string.IsNullOrWhiteSpace(cursor));
+            return recordResponse;
+        }
+
 
     }
 }

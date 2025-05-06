@@ -11,7 +11,7 @@ namespace ATbluePandaSDK
         public static string ARG_IS_NULL = "Argument is null or empty.";
         public static string ARG_IS_INVALID = "Argument is not valid.";
         public static string USER_NOT_AUTHENTICATED = "BskyUser is not authenticated.";
-        public static string ARG_IS_NEGATIVE = "Argument must be greater than zero";
+        public static string LIMIT_NOT_SUPPORTED = "Value not supported";
         public static string USER_ALREADY_FOLLOWED = "BskyUser is already followed.";
         public static string USER_NOT_FOLLOWED = "BskyUser is not followed.";
         public static string POST_ALREADY_LIKED = "Post already liked";

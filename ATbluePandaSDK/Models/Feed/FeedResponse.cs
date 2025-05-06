@@ -386,6 +386,9 @@ namespace ATPandaSDK.Models.Feed
         [JsonPropertyName("createdAt")]
         public DateTime CreatedAt { get; set; }
 
+        [JsonPropertyName("subject")]
+        public string Subject { get; set; }
+
         [JsonPropertyName("embed")]
         public Embed Embed { get; set; }
 

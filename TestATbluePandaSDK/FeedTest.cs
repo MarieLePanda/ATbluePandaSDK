@@ -72,7 +72,7 @@ namespace TestATbluePandaSDK
 
             Assert.NotNull(timelineNegativeLimit);
             Assert.NotEmpty(timelineNegativeLimit.Message);
-            Assert.Contains(ErrorMessage.ARG_IS_NEGATIVE, timelineNegativeLimit.Message);
+            Assert.Contains(ErrorMessage.LIMIT_NOT_SUPPORTED, timelineNegativeLimit.Message);
 
         }
 
@@ -135,7 +135,7 @@ namespace TestATbluePandaSDK
 
             Assert.NotNull(timelineNegativeLimit);
             Assert.NotEmpty(timelineNegativeLimit.Message);
-            Assert.Contains(ErrorMessage.ARG_IS_NEGATIVE, timelineNegativeLimit.Message);
+            Assert.Contains(ErrorMessage.LIMIT_NOT_SUPPORTED, timelineNegativeLimit.Message);
 
         }
 
@@ -194,7 +194,7 @@ namespace TestATbluePandaSDK
 
             Assert.NotNull(timelineNegativeLimit);
             Assert.NotEmpty(timelineNegativeLimit.Message);
-            Assert.Contains(ErrorMessage.ARG_IS_NEGATIVE, timelineNegativeLimit.Message);
+            Assert.Contains(ErrorMessage.LIMIT_NOT_SUPPORTED, timelineNegativeLimit.Message);
 
         }
     }
