@@ -7,8 +7,17 @@ using System.Threading.Tasks;
 
 namespace ATbluePandaSDK.Models
 {
-    public class ActionResponse : Response
+    public class BskyActionResponse : Response
     {
+        public BskyActionResponse() { }
+
+        public BskyActionResponse(Response response)
+        {
+            StatusCode = response.StatusCode;
+            Result = response.Result;
+            ErrorMessage = response.ErrorMessage;
+        }
+
         [JsonPropertyName("uri")]
         public string Uri { get; set; }
         [JsonPropertyName("cid")]

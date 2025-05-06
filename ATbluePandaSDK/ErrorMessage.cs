@@ -8,22 +8,18 @@ namespace ATbluePandaSDK
 {
     public class ErrorMessage
     {
-        public static string AUTH_REQUEST_IS_NULL = "Authentication request is null.";
-        public static string USER_NAME_OR_PASSWORD_IS_NULL = "Username or password cannot be null or empty.";
-        public static string USER_NOT_AUTHENTICATED = "User is not authenticated.";
-        public static string TEXT_IS_NULL = "Text cannot be null or empty.";
-        public static string LIMIT_IS_NEGATIVE = "Limit must be greater than zero";
-        public static string FEED_IS_NULL = "Feed cannot be null or empty.";
-        public static string POST_URI_IS_NULL = "Post uri cannot be null or empty.";
-        public static string USER_ALREADY_FOLLOWED = "User is already followed.";
-        public static string USER_NOT_FOLLOWED = "User is not followed.";
+        public static string ARG_IS_NULL = "Argument is null or empty.";
+        public static string ARG_IS_INVALID = "Argument is not valid.";
+        public static string USER_NOT_AUTHENTICATED = "BskyUser is not authenticated.";
+        public static string LIMIT_NOT_SUPPORTED = "Value not supported";
+        public static string USER_ALREADY_FOLLOWED = "BskyUser is already followed.";
+        public static string USER_NOT_FOLLOWED = "BskyUser is not followed.";
         public static string POST_ALREADY_LIKED = "Post already liked";
         public static string POST_NOT_LIKED = "Post not liked";
-        public static string POST_IS_NULL = "Post cannot be null or empty.";
-        public static string VIEWER_IS_NULL = "Viewer cannot be null.";
-        public static string POST_URI_OR_CID_IS_NULL = "Post uri or cid cannot be null or empty.";
-        public static string FOLLOWEE_IS_NULL = "Followee cannot be null.";
-        public static string FOLLOWEE_DID_IS_NULL = "Followee DID cannot be null or empty.";
-        public static string SAME_DID_USER_FOLLOWEE = "Authenticate user and followee user cannot have the same DID";
+        public static string SAME_DID_USER = "Users cannot have the same DID";
+        public static string USER_ALREADY_MUTED = "BskyUser is already muted.";
+        public static string USER_NOT_MUTED = "BskyUser is not muted.";
+        public static string USER_ALREADY_BLOCKED = "BskyUser is already blocked.";
+        public static string USER_NOT_BLOCKED = "BskyUser is not blocked.";
     }
 }

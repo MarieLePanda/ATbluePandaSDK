@@ -15,7 +15,6 @@ namespace ATPandaSDK.Services
     public class FeedService
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger _logger;
         /// <summary>
         /// Initializes a new instance of the <see cref="FeedService"/> class.
         /// Sets up the HTTP client with the base address defined in the application's configuration and a logger.
@@ -23,19 +22,16 @@ namespace ATPandaSDK.Services
         public FeedService()
         {
             _httpClient = new HttpClient { BaseAddress = new Uri(Configuration.BaseUrl) };
-            _logger = new Logger<FeedService>(new LoggerFactory());
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FeedService"/> class.
         /// </summary>
         /// <param name="httpClient">An instance of <see cref="HttpClient"/> to use.</param>
-        /// <param name="logger">An instance of <see cref="ILogger"/> to use.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="httpClient"/> or <paramref name="logger"/>is null.</exception>
-        public FeedService(HttpClient httpClient, ILogger logger)
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="httpClient"/>is null.</exception>
+        public FeedService(HttpClient httpClient)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient), "HttpClient cannot be null.");
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger), "ILogger cannot be null.");
         }
 
         /// <summary>
@@ -51,7 +47,7 @@ namespace ATPandaSDK.Services
         /// </returns>
         /// <exception cref="ArgumentException">Thrown if <paramref name="accessToken"/> or <paramref name="feed"/> is null or empty.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="limit"/> is less than or equal to zero.</exception>
-        public async Task<TimelineResponse> GetFeedGeneratorAsync(string accessToken, string feed, int limit, string cursor)
+        public async Task<BskyTimeline> GetFeedGeneratorAsync(string accessToken, string feed, int limit, string cursor)
         {
             var url = $"{Configuration.GetFeed}?feed={Uri.EscapeDataString(feed)}&limit={limit}";
 
@@ -76,7 +72,7 @@ namespace ATPandaSDK.Services
         /// </returns>
         /// <exception cref="ArgumentException">Thrown if <paramref name="accessToken"/> or <paramref name="actorDid"/> is null or empty.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="limit"/> is less than or equal to zero.</exception>
-        public async Task<TimelineResponse> GetAuthorFeedAsync(string accessToken, string actorDid, int limit, string cursor)
+        public async Task<BskyTimeline> GetAuthorFeedAsync(string accessToken, string actorDid, int limit, string cursor)
         {
             var url = $"{Configuration.GetAuthorFeed}?actor={Uri.EscapeDataString(actorDid)}&limit={limit}";
 
@@ -99,7 +95,7 @@ namespace ATPandaSDK.Services
         /// containing the timeline data if successful, or an error message otherwise.
         /// </returns>
         /// <exception cref="HttpRequestException">Thrown if an HTTP error occurs during the request.</exception>
-        public async Task<TimelineResponse> GetTimelineAsync(string accessToken, int limit, string cursor)
+        public async Task<BskyTimeline> GetTimelineAsync(string accessToken, int limit, string cursor)
         {
             var url = $"{Configuration.GetTimeline}?limit={limit}";
             if (!string.IsNullOrEmpty(cursor))
@@ -120,7 +116,7 @@ namespace ATPandaSDK.Services
         /// containing the timeline data if the request succeeds, or an error message otherwise.
         /// </returns>
         /// <exception cref="HttpRequestException">Thrown if an HTTP error occurs.</exception
-        private async Task<TimelineResponse> GetTimelineAsync(string accessToken, string url)
+        private async Task<BskyTimeline> GetTimelineAsync(string accessToken, string url)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -129,13 +125,13 @@ namespace ATPandaSDK.Services
             if (response.IsSuccessStatusCode)
             {
                 string jsonResult = await response.Content.ReadAsStringAsync();
-                TimelineResponse timelineResponse = JsonSerializer.Deserialize<TimelineResponse>(jsonResult);
+                BskyTimeline timelineResponse = JsonSerializer.Deserialize<BskyTimeline>(jsonResult);
                 return timelineResponse;
             }
             else
             {
                 string errorResponse = await response.Content.ReadAsStringAsync();
-                return new TimelineResponse
+                return new BskyTimeline
                 {
                     ErrorMessage = errorResponse
                 };

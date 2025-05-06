@@ -22,15 +22,15 @@ namespace TestATbluePandaSDK
         public void CreatePostSuccess()
         {
             // Arrange
-            AuthUser authUser = Utils.GetAuthUser();
-            ActionResponse fakeAction = Utils.GetActionResponse();
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            BskyActionResponse fakeAction = Utils.GetActionResponse();
 
             var fakeActionJSON = JsonSerializer.Serialize(fakeAction);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Post, fakeActionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
             //Act
-            ActionResponse actionResponse = client.CreatePost(authUser, "Create post test");
+            BskyActionResponse actionResponse = client.CreatePost("Create post test");
 
 
             //Verify
@@ -49,16 +49,16 @@ namespace TestATbluePandaSDK
         public void CreatePostFail()
         {
             // Arrange
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
 
-            ActionResponse fakeAction = Utils.GetActionResponseError();
+            BskyActionResponse fakeAction = Utils.GetActionResponseError();
 
             var fakeActionJSON = JsonSerializer.Serialize(fakeAction);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.BadRequest, HttpMethod.Post, fakeActionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
             //Act
-            ActionResponse actionResponse = client.CreatePost(authUser, "Create post test");
+            BskyActionResponse actionResponse = client.CreatePost("Create post test");
 
 
             //Verify
@@ -75,41 +75,27 @@ namespace TestATbluePandaSDK
         public void CreatePostWrongArgumentFail()
         {
             // Arrange
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
 
             //Act
             var client = new ATPClient();
 
-            ActionResponse ActionResponseAuthNull = client.CreatePost(null, "hello");
-            ActionResponse ActionResponseTextEmpty = client.CreatePost(authUser, "");
-            ActionResponse ActionResponseTextNull = client.CreatePost(authUser, null);
-
-
+            BskyException actionResponseAuthNull = Assert.Throws<BskyException>(() => client.CreatePost("hello", null));
+            ArgumentNullException actionResponseTextEmpty = Assert.Throws<ArgumentNullException>(() => client.CreatePost("", authUser));
+            ArgumentNullException actionResponseTextNull = Assert.Throws<ArgumentNullException>(() => client.CreatePost(null, authUser));
 
             //Verify
-            Assert.NotNull(ActionResponseAuthNull);
-            Assert.Null(ActionResponseAuthNull.Cid);
-            Assert.Null(ActionResponseAuthNull.Uri);
-            Assert.Null(ActionResponseAuthNull.ValidationStatus);
-            Assert.Null(ActionResponseAuthNull.Commit);
-            Assert.NotEmpty(ActionResponseAuthNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.USER_NOT_AUTHENTICATED, ActionResponseAuthNull.ErrorMessage);
+            Assert.NotNull(actionResponseAuthNull);
+            Assert.NotEmpty(actionResponseAuthNull.Message);
+            Assert.Contains(ErrorMessage.USER_NOT_AUTHENTICATED, actionResponseAuthNull.Message);
 
-            Assert.NotNull(ActionResponseTextEmpty);
-            Assert.Null(ActionResponseTextEmpty.Cid);
-            Assert.Null(ActionResponseTextEmpty.Uri);
-            Assert.Null(ActionResponseTextEmpty.ValidationStatus);
-            Assert.Null(ActionResponseTextEmpty.Commit);
-            Assert.NotEmpty(ActionResponseTextEmpty.ErrorMessage);
-            Assert.Equal(ErrorMessage.TEXT_IS_NULL, ActionResponseTextEmpty.ErrorMessage);
+            Assert.NotNull(actionResponseTextEmpty);
+            Assert.NotEmpty(actionResponseTextEmpty.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NULL, actionResponseTextEmpty.Message);
 
-            Assert.NotNull(ActionResponseTextNull);
-            Assert.Null(ActionResponseTextNull.Cid);
-            Assert.Null(ActionResponseTextNull.Uri);
-            Assert.Null(ActionResponseTextNull.ValidationStatus);
-            Assert.Null(ActionResponseTextNull.Commit);
-            Assert.NotEmpty(ActionResponseTextNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.TEXT_IS_NULL, ActionResponseTextNull.ErrorMessage);
+            Assert.NotNull(actionResponseTextNull);
+            Assert.NotEmpty(actionResponseTextNull.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NULL, actionResponseTextEmpty.Message);
 
         }
 
@@ -117,16 +103,16 @@ namespace TestATbluePandaSDK
         public void LikePostSuccess()
         {
             // Arrange
-            AuthUser authUser = Utils.GetAuthUser();
-            ActionResponse fakeAction = Utils.GetActionResponse();
+            BskyAuthUser authUser = Utils.GetAuthUser();
+            BskyActionResponse fakeAction = Utils.GetActionResponse();
             Post post = Utils.GetPost();
 
             var fakeAcionJSON = JsonSerializer.Serialize(fakeAction);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Post, fakeAcionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
             //Act
-            ActionResponse actionResponse = client.LikePost(authUser, post);
+            BskyActionResponse actionResponse = client.LikePost(post, authUser);
 
 
             //Verify
@@ -145,16 +131,16 @@ namespace TestATbluePandaSDK
         public void LikePostFail()
         {
             // Arrange
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
             Post post = Utils.GetPost();
 
-            ActionResponse fakeAction = Utils.GetActionResponseError();
+            BskyActionResponse fakeAction = Utils.GetActionResponseError();
             var fakeAcionJSON = JsonSerializer.Serialize(fakeAction);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.BadRequest, HttpMethod.Post, fakeAcionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
             //Act
-            ActionResponse actionResponse = client.LikePost(authUser, post);
+            BskyActionResponse actionResponse = client.LikePost(post);
 
 
             //Verify
@@ -171,7 +157,7 @@ namespace TestATbluePandaSDK
         public void LikePostWrongArgumentFail()
         {
             // Arrange
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
 
             Viewer viewer = new Viewer
             {
@@ -191,23 +177,19 @@ namespace TestATbluePandaSDK
             //Act
             var client = new ATPClient();
 
-            ActionResponse ActionResponseAuthNull = client.LikePost(null, postLiked);
-            ActionResponse ActionResponsePostLiked = client.LikePost(authUser, postLiked);
-            ActionResponse ActionResponsePostNull = client.LikePost(authUser, null);
-            ActionResponse ActionResponsePostStringNull = client.LikePost(authUser, postStringNull);
-            ActionResponse ActionResponsePostEmpty = client.LikePost(authUser, postEmpty);
+            BskyException ActionResponseAuthNull = Assert.Throws<BskyException>(() => client.LikePost(postLiked, null));
+            BskyActionResponse ActionResponsePostLiked = client.LikePost(postLiked, authUser);
+            ArgumentNullException ActionResponsePostNull = Assert.Throws<ArgumentNullException>(() => client.LikePost(null, authUser));
+            ArgumentException ActionResponsePostStringNull = Assert.Throws<ArgumentException>(() => client.LikePost(postStringNull, authUser));
+            ArgumentException ActionResponsePostEmpty = Assert.Throws<ArgumentException>(() => client.LikePost(postEmpty, authUser));
 
 
 
 
             //Verify
             Assert.NotNull(ActionResponseAuthNull);
-            Assert.Null(ActionResponseAuthNull.Cid);
-            Assert.Null(ActionResponseAuthNull.Uri);
-            Assert.Null(ActionResponseAuthNull.ValidationStatus);
-            Assert.Null(ActionResponseAuthNull.Commit);
-            Assert.NotEmpty(ActionResponseAuthNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.USER_NOT_AUTHENTICATED, ActionResponseAuthNull.ErrorMessage);
+            Assert.NotEmpty(ActionResponseAuthNull.Message);
+            Assert.Contains(ErrorMessage.USER_NOT_AUTHENTICATED, ActionResponseAuthNull.Message);
 
             Assert.NotNull(ActionResponsePostLiked);
             Assert.Null(ActionResponsePostLiked.Cid);
@@ -218,28 +200,16 @@ namespace TestATbluePandaSDK
             Assert.Equal(ErrorMessage.POST_ALREADY_LIKED, ActionResponsePostLiked.ErrorMessage);
 
             Assert.NotNull(ActionResponsePostNull);
-            Assert.Null(ActionResponsePostNull.Cid);
-            Assert.Null(ActionResponsePostNull.Uri);
-            Assert.Null(ActionResponsePostNull.ValidationStatus);
-            Assert.Null(ActionResponsePostNull.Commit);
-            Assert.NotEmpty(ActionResponsePostNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.POST_IS_NULL, ActionResponsePostNull.ErrorMessage);
+            Assert.NotEmpty(ActionResponsePostNull.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NULL, ActionResponsePostNull.Message);
 
             Assert.NotNull(ActionResponsePostStringNull);
-            Assert.Null(ActionResponsePostStringNull.Cid);
-            Assert.Null(ActionResponsePostStringNull.Uri);
-            Assert.Null(ActionResponsePostStringNull.ValidationStatus);
-            Assert.Null(ActionResponsePostStringNull.Commit);
-            Assert.NotEmpty(ActionResponsePostStringNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.POST_URI_OR_CID_IS_NULL, ActionResponsePostStringNull.ErrorMessage);
+            Assert.NotEmpty(ActionResponsePostStringNull.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NULL, ActionResponsePostStringNull.Message);
 
             Assert.NotNull(ActionResponsePostEmpty);
-            Assert.Null(ActionResponsePostEmpty.Cid);
-            Assert.Null(ActionResponsePostEmpty.Uri);
-            Assert.Null(ActionResponsePostEmpty.ValidationStatus);
-            Assert.Null(ActionResponsePostEmpty.Commit);
-            Assert.NotEmpty(ActionResponsePostEmpty.ErrorMessage);
-            Assert.Equal(ErrorMessage.VIEWER_IS_NULL, ActionResponsePostEmpty.ErrorMessage);
+            Assert.NotEmpty(ActionResponsePostEmpty.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NULL, ActionResponsePostEmpty.Message);
 
         }
 
@@ -247,9 +217,9 @@ namespace TestATbluePandaSDK
         public void UnlikePostSuccess()
         {
             // Arrange
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
 
-            ActionResponse fakeAction = Utils.GetActionResponse();
+            BskyActionResponse fakeAction = Utils.GetActionResponse();
 
             Viewer viewer = new Viewer
             {
@@ -261,10 +231,10 @@ namespace TestATbluePandaSDK
 
             var fakeAcionJSON = JsonSerializer.Serialize(fakeAction);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Post, fakeAcionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
             //Act
-            ActionResponse actionResponse = client.UnlikePost(authUser, post);
+            BskyActionResponse actionResponse = client.UnlikePost(post);
 
 
             //Verify
@@ -283,7 +253,7 @@ namespace TestATbluePandaSDK
         public void UnlikePostFail()
         {
             // Arrange
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
 
             Viewer viewer = new Viewer
             {
@@ -293,14 +263,14 @@ namespace TestATbluePandaSDK
             Post post = Utils.GetPost();
             post.Viewer = viewer;
 
-            ActionResponse fakeAction = Utils.GetActionResponseError();
+            BskyActionResponse fakeAction = Utils.GetActionResponseError();
 
             var fakeAcionJSON = JsonSerializer.Serialize(fakeAction);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.BadRequest, HttpMethod.Post, fakeAcionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
             //Act
-            ActionResponse actionResponse = client.LikePost(authUser, post);
+            BskyActionResponse actionResponse = client.LikePost(post);
 
 
             //Verify
@@ -317,7 +287,7 @@ namespace TestATbluePandaSDK
         public void UnlikePostWrongArgumentFail()
         {
             // Arrange
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
             Post postNotLiked = Utils.GetPost();
             Post postStringNull = new Post
             {
@@ -328,20 +298,16 @@ namespace TestATbluePandaSDK
             //Act
             var client = new ATPClient();
 
-            ActionResponse ActionResponseAuthNull = client.UnlikePost(null, postNotLiked);
-            ActionResponse ActionResponsePostLiked = client.UnlikePost(authUser, postNotLiked);
-            ActionResponse ActionResponsePostNull = client.UnlikePost(authUser, null);
-            ActionResponse ActionResponsePostStringNull = client.UnlikePost(authUser, postStringNull);
-            ActionResponse ActionResponsePostEmpty = client.UnlikePost(authUser, postEmpty);
+            BskyException ActionResponseAuthNull = Assert.Throws<BskyException>(() => client.UnlikePost(postNotLiked, null));
+            BskyActionResponse ActionResponsePostLiked = client.UnlikePost(postNotLiked, authUser);
+            ArgumentNullException ActionResponsePostNull = Assert.Throws<ArgumentNullException>(() => client.UnlikePost(null, authUser));
+            ArgumentException ActionResponsePostStringNull = Assert.Throws<ArgumentException>(() => client.UnlikePost(postStringNull, authUser));
+            ArgumentException ActionResponsePostEmpty = Assert.Throws<ArgumentException>(() => client.UnlikePost(postEmpty, authUser));
 
             //Verify
             Assert.NotNull(ActionResponseAuthNull);
-            Assert.Null(ActionResponseAuthNull.Cid);
-            Assert.Null(ActionResponseAuthNull.Uri);
-            Assert.Null(ActionResponseAuthNull.ValidationStatus);
-            Assert.Null(ActionResponseAuthNull.Commit);
-            Assert.NotEmpty(ActionResponseAuthNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.USER_NOT_AUTHENTICATED, ActionResponseAuthNull.ErrorMessage);
+            Assert.NotEmpty(ActionResponseAuthNull.Message);
+            Assert.Contains(ErrorMessage.USER_NOT_AUTHENTICATED, ActionResponseAuthNull.Message);
 
             Assert.NotNull(ActionResponsePostLiked);
             Assert.Null(ActionResponsePostLiked.Cid);
@@ -352,35 +318,23 @@ namespace TestATbluePandaSDK
             Assert.Equal(ErrorMessage.POST_NOT_LIKED, ActionResponsePostLiked.ErrorMessage);
 
             Assert.NotNull(ActionResponsePostNull);
-            Assert.Null(ActionResponsePostNull.Cid);
-            Assert.Null(ActionResponsePostNull.Uri);
-            Assert.Null(ActionResponsePostNull.ValidationStatus);
-            Assert.Null(ActionResponsePostNull.Commit);
-            Assert.NotEmpty(ActionResponsePostNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.POST_IS_NULL, ActionResponsePostNull.ErrorMessage);
+            Assert.NotEmpty(ActionResponsePostNull.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NULL, ActionResponsePostNull.Message);
 
             Assert.NotNull(ActionResponsePostStringNull);
-            Assert.Null(ActionResponsePostStringNull.Cid);
-            Assert.Null(ActionResponsePostStringNull.Uri);
-            Assert.Null(ActionResponsePostStringNull.ValidationStatus);
-            Assert.Null(ActionResponsePostStringNull.Commit);
-            Assert.NotEmpty(ActionResponsePostStringNull.ErrorMessage);
-            Assert.Equal(ErrorMessage.POST_URI_OR_CID_IS_NULL, ActionResponsePostStringNull.ErrorMessage);
+            Assert.NotEmpty(ActionResponsePostStringNull.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NULL, ActionResponsePostStringNull.Message);
 
             Assert.NotNull(ActionResponsePostEmpty);
-            Assert.Null(ActionResponsePostEmpty.Cid);
-            Assert.Null(ActionResponsePostEmpty.Uri);
-            Assert.Null(ActionResponsePostEmpty.ValidationStatus);
-            Assert.Null(ActionResponsePostEmpty.Commit);
-            Assert.NotEmpty(ActionResponsePostEmpty.ErrorMessage);
-            Assert.Equal(ErrorMessage.VIEWER_IS_NULL, ActionResponsePostEmpty.ErrorMessage);
+            Assert.NotEmpty(ActionResponsePostEmpty.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NULL, ActionResponsePostEmpty.Message);
 
         }
 
         [Fact]
         public void ThreadSuccess()
         {
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
 
 
             Author author = Utils.GetAuthor();
@@ -402,17 +356,17 @@ namespace TestATbluePandaSDK
                 type = "app.bsky.feed.defs#threadViewPost"
             };
 
-            ThreadResponse threadResponse = new ThreadResponse
+            BskyThread threadResponse = new BskyThread
             {
                 thread = thread
             };
 
             var fakeAcionJSON = JsonSerializer.Serialize(threadResponse);
             HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.OK, HttpMethod.Get, fakeAcionJSON);
-            var client = new ATPClient(httpClient);
+            var client = new ATPClient(authUser, httpClient);
 
             //Act
-            ThreadResponse PostResult = client.GetPostThread(authUser, "uri//dijdsiduoifjufhjeujfef");
+            BskyThread PostResult = client.GetPostThread("uri//dijdsiduoifjufhjeujfef");
 
 
             //Verify
@@ -428,20 +382,15 @@ namespace TestATbluePandaSDK
         [Fact]
         public void ThreadFaill()
         {
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
 
-            ThreadResponse threadResponse = new ThreadResponse
-            {
-                ErrorMessage = "RANDOM ERROR"
-            };
-
-            var fakeAcionJSON = JsonSerializer.Serialize(threadResponse);
-
-            HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.InternalServerError, HttpMethod.Get, fakeAcionJSON);
-            var client = new ATPClient(httpClient);
+            string errorMessage = "RANDOM ERROR";
+            
+            HttpClient httpClient = Utils.getMockHTTPClient(HttpStatusCode.BadRequest, HttpMethod.Get, errorMessage);
+            var client = new ATPClient(authUser, httpClient);
 
             //Act
-            ThreadResponse PostResult = client.GetPostThread(authUser, "uri//dijdsiduoifjufhjeujfef");
+            BskyThread PostResult = client.GetPostThread("uri//dijdsiduoifjufhjeujfef");
 
             //Verify
             Assert.NotNull(PostResult);
@@ -453,27 +402,27 @@ namespace TestATbluePandaSDK
         [Fact]
         public void ThreadArgumentFail()
         {
-            AuthUser authUser = Utils.GetAuthUser();
+            BskyAuthUser authUser = Utils.GetAuthUser();
             var client = new ATPClient();
 
             //Act
-            ThreadResponse PostResultNotAuth = client.GetPostThread(null, "uri//dijdsiduoifjufhjeujfef");
-            ThreadResponse PostResultUriEmpy = client.GetPostThread(authUser, "");
-            ThreadResponse PostResultWrongLimit = client.GetPostThread(authUser, "uri//dijdsiduoifjufhjeujfef", -3);
+            BskyException PostResultNotAuth = Assert.Throws<BskyException>(() => client.GetPostThread("uri//dijdsiduoifjufhjeujfef", auth:null));
+            ArgumentNullException PostResultUriEmpy = Assert.Throws<ArgumentNullException>(() => client.GetPostThread("", auth:authUser));
+            ArgumentOutOfRangeException PostResultWrongLimit = Assert.Throws<ArgumentOutOfRangeException>(() => client.GetPostThread("uri//dijdsiduoifjufhjeujfef", -3, auth:authUser));
 
 
             //Verify
             Assert.NotNull(PostResultNotAuth);
-            Assert.Null(PostResultNotAuth.thread);
-            Assert.Equal(ErrorMessage.USER_NOT_AUTHENTICATED, PostResultNotAuth.ErrorMessage);
+            Assert.NotEmpty(PostResultNotAuth.Message);
+            Assert.Contains(ErrorMessage.USER_NOT_AUTHENTICATED, PostResultNotAuth.Message);
 
             Assert.NotNull(PostResultUriEmpy);
-            Assert.Null(PostResultUriEmpy.thread);
-            Assert.Equal(ErrorMessage.POST_URI_IS_NULL, PostResultUriEmpy.ErrorMessage);
+            Assert.NotEmpty(PostResultUriEmpy.Message);
+            Assert.Contains(ErrorMessage.ARG_IS_NULL, PostResultUriEmpy.Message);
 
             Assert.NotNull(PostResultWrongLimit);
-            Assert.Null(PostResultWrongLimit.thread);
-            Assert.Equal(ErrorMessage.LIMIT_IS_NEGATIVE, PostResultWrongLimit.ErrorMessage);
+            Assert.NotEmpty(PostResultWrongLimit.Message);
+            Assert.Contains(ErrorMessage.LIMIT_NOT_SUPPORTED, PostResultWrongLimit.Message);
 
         }
 
